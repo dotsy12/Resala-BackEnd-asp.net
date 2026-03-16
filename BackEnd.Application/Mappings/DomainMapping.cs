@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace BackEnd.Application.Mappings
 {
-    public class DomainMapping : Profile
+    public class DomainMapping  : Profile
     {
         public DomainMapping()
         {
