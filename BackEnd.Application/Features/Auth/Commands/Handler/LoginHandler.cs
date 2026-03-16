@@ -14,19 +14,22 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
     private readonly IDonorRepository _donorRepo;
     private readonly IStaffRepository _staffRepo;
     private readonly IJwtService _jwtService;
+    private readonly IRefreshTokenRepository _refreshTokenRepo;
 
     public LoginHandler(
         UserManager<ApplicationUser> userManager,
         IUserRepository userRepo,
         IDonorRepository donorRepo,
         IStaffRepository staffRepo,
-        IJwtService jwtService)
+        IJwtService jwtService,
+        IRefreshTokenRepository refreshTokenRepo)
     {
         _userManager = userManager;
         _userRepo = userRepo;
         _donorRepo = donorRepo;
         _staffRepo = staffRepo;
         _jwtService = jwtService;
+        _refreshTokenRepo = refreshTokenRepo;
     }
 
     public async Task<Result<LoginResponse>> Handle(
@@ -87,13 +90,27 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
 
         // 6. توليد الـ Token
         var token = _jwtService.GenerateToken(user, role, donorId, staffId);
+        // بعد توليد الـ token أضف:
+        var refreshToken = _jwtService.GenerateRefreshToken();
+
+        var refreshTokenEntity = new RefreshToken
+        {
+            UserId = user.Id,
+            Token = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _refreshTokenRepo.AddAsync(refreshTokenEntity, ct);
+        await _refreshTokenRepo.SaveChangesAsync(ct);
 
         return Result<LoginResponse>.Success(new LoginResponse(
             Token: token,
+            RefreshToken: refreshToken,   // ✅
             Role: role,
             UserId: donorId ?? staffId ?? 0,
             Name: $"{user.FirstName} {user.LastName}".Trim(),
             PhoneNumber: user.PhoneNumber
-        ), "Login successful.");
+        ), "تم تسجيل الدخول بنجاح.");
     }
 }
