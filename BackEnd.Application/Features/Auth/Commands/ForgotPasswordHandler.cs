@@ -29,13 +29,13 @@ namespace BackEnd.Application.Features.Auth.Commands
             var user = await _userManager.FindByEmailAsync(request.Email);
             if (user is null)
                 return Result<string>.Failure(
-                    "User with this email does not exist.", ErrorType.NotFound);
+                    "لا يوجد مستخدم بهذا البريد الإلكتروني.", ErrorType.NotFound);
 
             var otpCode = _otpService.GenerateOtp();
             await _otpService.SaveOtpAsync(user.Email!, otpCode, "PasswordReset", ct);
             await _emailService.SendOtpEmailAsync(user.Email!, otpCode, "PasswordReset", ct);
 
-            return Result<string>.Success("An OTP has been sent to your email address.");
+            return Result<string>.Success("تم إرسال رمز OTP على بريدك الإلكتروني.");
         }
     }
 }

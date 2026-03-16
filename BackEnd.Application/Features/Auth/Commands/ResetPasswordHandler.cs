@@ -25,14 +25,14 @@ namespace BackEnd.Application.Features.Auth.Commands
         {
             var user = await _userManager.FindByEmailAsync(request.Email);
             if (user is null)
-                return Result<string>.Failure("User not found.", ErrorType.NotFound);
+                return Result<string>.Failure("المستخدم غير موجود.", ErrorType.NotFound);
 
             var isValid = await _otpService.ValidateOtpAsync(
                 request.Email, request.Otp, "PasswordReset", ct);
 
             if (!isValid)
                 return Result<string>.Failure(
-                    "Invalid or expired OTP.", ErrorType.BadRequest);
+                    "رمز OTP غير صحيح أو منتهي الصلاحية.", ErrorType.BadRequest);
 
             // إعادة تعيين الباسورد
             var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
@@ -44,11 +44,11 @@ namespace BackEnd.Application.Features.Auth.Commands
                 var errors = result.Errors
                     .ToDictionary(e => e.Code, e => new[] { e.Description });
                 return Result<string>.Failure(
-                    "Password reset failed.", ErrorType.BadRequest, errors);
+                    "فشل إعادة تعيين الباسورد.", ErrorType.BadRequest, errors);
             }
 
             return Result<string>.Success(
-                "Password has been reset successfully. You can now log in.");
+               "تم تغيير الباسورد بنجاح. يمكنك تسجيل الدخول الآن.");
         }
     }
 }

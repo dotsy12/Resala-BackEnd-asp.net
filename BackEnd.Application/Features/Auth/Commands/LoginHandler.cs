@@ -42,18 +42,18 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
 
         if (user is null)
             return Result<LoginResponse>.Failure(
-                "Invalid credentials.", ErrorType.Unauthorized);
+                "بيانات الدخول غير صحيحة.", ErrorType.Unauthorized);
 
         // 2. التحقق من الباسورد
         var passwordOk = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!passwordOk)
             return Result<LoginResponse>.Failure(
-                "Invalid credentials.", ErrorType.Unauthorized);
+                "بيانات الدخول غير صحيحة.", ErrorType.Unauthorized);
 
         // 3. التحقق من التفعيل
         if (!user.IsActive)
             return Result<LoginResponse>.Failure(
-                "Account is not active. Please verify your email.",
+                "الحساب غير مفعّل. يرجى التحقق من بريدك الإلكتروني.",
                 ErrorType.Unauthorized);
 
         // 4. الـ Role
@@ -77,11 +77,11 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
 
                 if (status == AccountStatus.Locked)
                     return Result<LoginResponse>.Failure(
-                        "Account is locked. Contact admin.", ErrorType.Forbidden);
+                        "الحساب موقوف. تواصل مع الأدمن.", ErrorType.Forbidden);
 
                 if (status == AccountStatus.Pending)
                     return Result<LoginResponse>.Failure(
-                        "Account is pending approval.", ErrorType.Forbidden);
+                      "الحساب قيد المراجعة.", ErrorType.Forbidden);
             }
         }
 
