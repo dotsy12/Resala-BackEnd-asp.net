@@ -5,7 +5,7 @@ using BackEnd.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 
-namespace BackEnd.Application.Features.Auth.Commands
+namespace BackEnd.Application.Features.Auth.Commands.Handler
 {
     public class CreateStaffHandler
         : IRequestHandler<CreateStaffCommand, Result<CreateStaffResponse>>

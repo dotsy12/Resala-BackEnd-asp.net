@@ -4,7 +4,7 @@ using BackEnd.Domain.Entities.Identity;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 
-namespace BackEnd.Application.Features.Auth.Commands
+namespace BackEnd.Application.Features.Auth.Commands.Handler
 {
     public class VerifyEmailHandler
         : IRequestHandler<VerifyEmailCommand, Result<string>>
