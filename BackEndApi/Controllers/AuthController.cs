@@ -409,6 +409,110 @@ namespace BackEnd.Api.Controllers
         public async Task<IActionResult> CreateStaff([FromBody] CreateStaffCommand cmd)
             => Ok(await _mediator.Send(cmd));
 
+        // ═══════════════════════════════════════════════════════════════
+        //  8. RESEND OTP — إعادة إرسال رمز OTP
+        // ═══════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// إعادة إرسال رمز OTP (Resend OTP)
+        /// </summary>
+        /// <remarks>
+        /// يُرسل رمز OTP جديد في حالتين:
+        ///
+        /// **1. التحقق من الإيميل:**
+        /// ```json
+        /// {
+        ///   "email": "ahmed@example.com",
+        ///   "otpType": "EmailVerification"
+        /// }
+        /// ```
+        ///
+        /// **2. إعادة تعيين الباسورد:**
+        /// ```json
+        /// {
+        ///   "email": "ahmed@example.com",
+        ///   "otpType": "PasswordReset"
+        /// }
+        /// ```
+        ///
+        /// **Success Response (200):**
+        /// ```json
+        /// {
+        ///   "succeeded": true,
+        ///   "data": "تم إرسال رمز OTP جديد على بريدك الإلكتروني."
+        /// }
+        /// ```
+        ///
+        /// **ملاحظة:** الـ OTP الجديد يلغي أي OTP سابق تلقائياً.
+        /// </remarks>
+        /// <param name="cmd">البريد الإلكتروني + نوع الـ OTP</param>
+        /// <response code="200">تم إرسال الـ OTP بنجاح</response>
+        /// <response code="400">البريد مفعّل مسبقاً أو نوع OTP غير صحيح</response>
+        /// <response code="404">البريد الإلكتروني غير مسجّل</response>
+        [HttpPost("resend-otp")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(ApiSuccessResponse<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [SwaggerOperation(
+            Summary = "إعادة إرسال رمز OTP",
+            Description = "يُرسل OTP جديد للتحقق من الإيميل أو إعادة تعيين الباسورد",
+            OperationId = "Auth_ResendOtp",
+            Tags = new[] { "Auth — Public" }
+        )]
+        public async Task<IActionResult> ResendOtp([FromBody] ResendOtpCommand cmd)
+            => Ok(await _mediator.Send(cmd));
+
+
+        // ═══════════════════════════════════════════════════════════════
+        //  9. REFRESH TOKEN — تجديد الـ Token
+        // ═══════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// تجديد الـ JWT Token بالـ Refresh Token (Refresh Token)
+        /// </summary>
+        /// <remarks>
+        /// يُجدّد الـ JWT Token المنتهي بدون الحاجة لتسجيل الدخول مجدداً.
+        ///
+        /// **الخطوات:**
+        /// 1. عند انتهاء الـ JWT Token يرجع 401
+        /// 2. أرسل الـ Refresh Token هنا للحصول على Token جديد
+        ///
+        /// **Request Example:**
+        /// ```json
+        /// {
+        ///   "refreshToken": "dGhpcyBpcyBhIHNhbXBsZSByZWZyZXNoIHRva2Vu..."
+        /// }
+        /// ```
+        ///
+        /// **Success Response (200):**
+        /// ```json
+        /// {
+        ///   "succeeded": true,
+        ///   "data": {
+        ///     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        ///     "refreshToken": "bmV3UmVmcmVzaFRva2VuSGVyZQ=="
+        ///   }
+        /// }
+        /// ```
+        ///
+        /// **ملاحظة:** الـ Refresh Token القديم يُلغى تلقائياً بعد الاستخدام.
+        /// </remarks>
+        /// <param name="cmd">الـ Refresh Token المُرسَل عند تسجيل الدخول</param>
+        /// <response code="200">تم تجديد الـ Token بنجاح — يرجع JWT + Refresh Token جديدين</response>
+        /// <response code="401">الـ Refresh Token منتهي أو ملغي أو غير صحيح</response>
+        [HttpPost("refresh-token")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(ApiSuccessResponse<RefreshTokenResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [SwaggerOperation(
+            Summary = "تجديد الـ JWT Token",
+            Description = "يُجدّد الـ Token بدون login — الـ Refresh Token القديم يُلغى تلقائياً",
+            OperationId = "Auth_RefreshToken",
+            Tags = new[] { "Auth — Public" }
+        )]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenCommand cmd)
+            => Ok(await _mediator.Send(cmd));
 
         // ═══════════════════════════════════════════════════════════════
         //  Response Model Docs (Swagger schema only — not real classes)
