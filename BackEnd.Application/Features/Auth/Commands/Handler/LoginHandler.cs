@@ -14,19 +14,22 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
     private readonly IDonorRepository _donorRepo;
     private readonly IStaffRepository _staffRepo;
     private readonly IJwtService _jwtService;
+    private readonly IRefreshTokenRepository _refreshTokenRepo;
 
     public LoginHandler(
         UserManager<ApplicationUser> userManager,
         IUserRepository userRepo,
         IDonorRepository donorRepo,
         IStaffRepository staffRepo,
-        IJwtService jwtService)
+        IJwtService jwtService,
+        IRefreshTokenRepository refreshTokenRepo)
     {
         _userManager = userManager;
         _userRepo = userRepo;
         _donorRepo = donorRepo;
         _staffRepo = staffRepo;
         _jwtService = jwtService;
+        _refreshTokenRepo = refreshTokenRepo;
     }
 
     public async Task<Result<LoginResponse>> Handle(
@@ -42,18 +45,18 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
 
         if (user is null)
             return Result<LoginResponse>.Failure(
-                "Invalid credentials.", ErrorType.Unauthorized);
+                "بيانات الدخول غير صحيحة.", ErrorType.Unauthorized);
 
         // 2. التحقق من الباسورد
         var passwordOk = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!passwordOk)
             return Result<LoginResponse>.Failure(
-                "Invalid credentials.", ErrorType.Unauthorized);
+                "بيانات الدخول غير صحيحة.", ErrorType.Unauthorized);
 
         // 3. التحقق من التفعيل
         if (!user.IsActive)
             return Result<LoginResponse>.Failure(
-                "Account is not active. Please verify your email.",
+                "الحساب غير مفعّل. يرجى التحقق من بريدك الإلكتروني.",
                 ErrorType.Unauthorized);
 
         // 4. الـ Role
@@ -77,23 +80,37 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
 
                 if (status == AccountStatus.Locked)
                     return Result<LoginResponse>.Failure(
-                        "Account is locked. Contact admin.", ErrorType.Forbidden);
+                        "الحساب موقوف. تواصل مع الأدمن.", ErrorType.Forbidden);
 
                 if (status == AccountStatus.Pending)
                     return Result<LoginResponse>.Failure(
-                        "Account is pending approval.", ErrorType.Forbidden);
+                      "الحساب قيد المراجعة.", ErrorType.Forbidden);
             }
         }
 
         // 6. توليد الـ Token
         var token = _jwtService.GenerateToken(user, role, donorId, staffId);
+        // بعد توليد الـ token أضف:
+        var refreshToken = _jwtService.GenerateRefreshToken();
+
+        var refreshTokenEntity = new RefreshToken
+        {
+            UserId = user.Id,
+            Token = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _refreshTokenRepo.AddAsync(refreshTokenEntity, ct);
+        await _refreshTokenRepo.SaveChangesAsync(ct);
 
         return Result<LoginResponse>.Success(new LoginResponse(
             Token: token,
+            RefreshToken: refreshToken,   // ✅
             Role: role,
             UserId: donorId ?? staffId ?? 0,
             Name: $"{user.FirstName} {user.LastName}".Trim(),
             PhoneNumber: user.PhoneNumber
-        ), "Login successful.");
+        ), "تم تسجيل الدخول بنجاح.");
     }
 }
