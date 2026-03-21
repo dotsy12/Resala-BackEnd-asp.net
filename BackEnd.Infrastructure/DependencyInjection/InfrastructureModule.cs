@@ -33,7 +33,11 @@ namespace BackEnd.Infrastructure.InfrastructureDependencies
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IDonorRepository, DonorRepository>();
             services.AddScoped<IStaffRepository, StaffRepository>();
+
+            services.AddScoped<ISponsorshipRepository, SponsorshipRepository>();
+
             services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
 
             // أضف كمان
             services.AddHttpContextAccessor();

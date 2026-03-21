@@ -1,4 +1,5 @@
 ﻿using BackEnd.Application.Behaviors;
+using BackEnd.Application.Interfaces.Repositories;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,7 +26,7 @@ namespace BackEnd.Application.ALLApplicationDependencies
             services.AddValidatorsFromAssembly(assembly);
 
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-
+            
             return services;
         }
     }
