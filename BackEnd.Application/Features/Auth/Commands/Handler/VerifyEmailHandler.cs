@@ -4,7 +4,7 @@ using BackEnd.Domain.Entities.Identity;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 
-namespace BackEnd.Application.Features.Auth.Commands
+namespace BackEnd.Application.Features.Auth.Commands.Handler
 {
     public class VerifyEmailHandler
         : IRequestHandler<VerifyEmailCommand, Result<string>>
@@ -25,23 +25,23 @@ namespace BackEnd.Application.Features.Auth.Commands
         {
             var user = await _userManager.FindByEmailAsync(request.Email);
             if (user is null)
-                return Result<string>.Failure("User not found.", ErrorType.NotFound);
+                return Result<string>.Failure("المستخدم غير موجود.", ErrorType.NotFound);
 
             if (user.EmailConfirmed)
-                return Result<string>.Failure("Email already verified.", ErrorType.BadRequest);
+                return Result<string>.Failure("البريد الإلكتروني مفعّل مسبقاً.", ErrorType.BadRequest);
 
             var isValid = await _otpService.ValidateOtpAsync(
                 request.Email, request.Otp, "EmailVerification", ct);
 
             if (!isValid)
-                return Result<string>.Failure("Invalid or expired OTP.", ErrorType.BadRequest);
+                return Result<string>.Failure("رمز OTP غير صحيح أو منتهي الصلاحية.", ErrorType.BadRequest);
 
             // تفعيل الحساب
             user.EmailConfirmed = true;
             user.IsActive = true;
             await _userManager.UpdateAsync(user);
 
-            return Result<string>.Success("Email verified successfully. You can now log in.");
+            return Result<string>.Success("تم التحقق من البريد الإلكتروني بنجاح. يمكنك تسجيل الدخول الآن.");
         }
     }
 }

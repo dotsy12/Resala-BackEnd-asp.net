@@ -5,7 +5,7 @@ using BackEnd.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 
-namespace BackEnd.Application.Features.Auth.Commands
+namespace BackEnd.Application.Features.Auth.Commands.Handler
 {
     public class CreateStaffHandler
         : IRequestHandler<CreateStaffCommand, Result<CreateStaffResponse>>
@@ -30,7 +30,7 @@ namespace BackEnd.Application.Features.Auth.Commands
             var usernameExists = await _userRepo.GetByUsernameAsync(request.Username, ct);
             if (usernameExists is not null)
                 return Result<CreateStaffResponse>.Failure(
-                    "Username already taken.", ErrorType.Conflict);
+                    "اسم المستخدم مأخوذ مسبقاً.", ErrorType.Conflict);
 
             var nameParts = request.Name.Trim().Split(' ', 2);
             var user = new ApplicationUser
@@ -51,7 +51,7 @@ namespace BackEnd.Application.Features.Auth.Commands
                 var errors = createResult.Errors
                     .ToDictionary(e => e.Code, e => new[] { e.Description });
                 return Result<CreateStaffResponse>.Failure(
-                    "Failed to create staff account.", ErrorType.BadRequest, errors);
+                    "فشل إنشاء حساب الموظف.", ErrorType.BadRequest, errors);
             }
 
             var roleName = request.StaffType == StaffType.Admin ? "Admin" : "Reception";

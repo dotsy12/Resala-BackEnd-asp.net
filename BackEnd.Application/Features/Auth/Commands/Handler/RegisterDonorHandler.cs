@@ -34,11 +34,11 @@ public class RegisterDonorHandler
         // 1. ✅ التحقق من عدم التكرار أولاً قبل أي عملية
         if (await _userRepo.PhoneExistsAsync(request.PhoneNumber, ct))
             return Result<RegisterDonorResponse>.Failure(
-                "Phone number already registered.", ErrorType.Conflict);
+                "رقم الهاتف مسجّل مسبقاً.", ErrorType.Conflict);
 
         if (await _userRepo.EmailExistsAsync(request.Email, ct))
             return Result<RegisterDonorResponse>.Failure(
-                "Email already registered.", ErrorType.Conflict);
+                "البريد الإلكتروني مسجّل مسبقاً.", ErrorType.Conflict);
 
         // 2. ✅ تحقق من الـ Domain Data قبل لمس الـ DB
         var nameParts = request.Name.Trim().Split(' ', 2);
@@ -85,7 +85,7 @@ public class RegisterDonorHandler
             var errors = createResult.Errors
                 .ToDictionary(e => e.Code, e => new[] { e.Description });
             return Result<RegisterDonorResponse>.Failure(
-                "Registration failed.", ErrorType.BadRequest, errors);
+                "فشل انشاءالحساب", ErrorType.BadRequest, errors);
         }
 
         await _userManager.AddToRoleAsync(user, "Donor");
@@ -119,11 +119,11 @@ public class RegisterDonorHandler
             // بس الإيميل مش اشتغل — يرجع نجاح مع رسالة مختلفة
             return Result<RegisterDonorResponse>.Success(
                 new RegisterDonorResponse(donor.Id,
-                    "Registration successful. Email sending failed — use resend OTP."));
+                    "تم انشاءالحساب,لكن لم يتم ارسال رمز التحقق ,قم بأعادة ارسال الرمز"));
         }
 
         return Result<RegisterDonorResponse>.Success(
             new RegisterDonorResponse(donor.Id,
-                "Registration successful. Check your email for OTP."));
+                "تم انشاء الحساب ,راجع البريدالخاص بك للحصول علي رمزالتحقق"));
     }
 }

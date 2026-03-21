@@ -22,7 +22,7 @@ namespace BackEnd.Infrastructure.InfrastructureDependencies
         {
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
-            services.AddScoped<IIdentityService, IdentityServies>();
+          //  services.AddScoped<IIdentityService, IdentityServies>();
            
             services.AddScoped<IFileService, FileService>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -33,6 +33,7 @@ namespace BackEnd.Infrastructure.InfrastructureDependencies
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IDonorRepository, DonorRepository>();
             services.AddScoped<IStaffRepository, StaffRepository>();
+            services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
             // أضف كمان
             services.AddHttpContextAccessor();

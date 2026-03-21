@@ -16,6 +16,7 @@ namespace BackEnd.Application.Features.Auth.Commands
 
     public record LoginResponse(
         string Token,
+         string RefreshToken,   // ✅ جديد
         string Role,
         int UserId,
         string Name,
