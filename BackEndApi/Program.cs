@@ -1,22 +1,41 @@
 ﻿using BackEnd.Api.Filters;
+using BackEnd.Api.Middleware;
 using BackEnd.Application.ALLApplicationDependencies;
 using BackEnd.Infrastructure.AllInfrastructureDependencies;
 using BackEnd.Infrastructure.InfrastructureDependencies;
 using Microsoft.OpenApi.Models;
+using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+// ✅ Bootstrap Logger — يشتغل قبل أي حاجة
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-builder.Services.AddControllers(options =>
+try
 {
-    options.Filters.Add<ResultActionFilter>();
-});
+    Log.Information("🚀 Resala Charity API is starting...");
 
-builder.Services
-    .AddApplicationDependencies()
-    .AuthenticationServices(builder.Configuration)
-    .AddInfrastructureDependencies(builder.Configuration);
+    var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSwaggerGen(c =>
+    // ✅ Serilog بدل الـ Default Logger
+    builder.Host.UseSerilog((context, services, config) =>
+        config
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext()
+    );
+
+    builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<ResultActionFilter>();
+    });
+
+    builder.Services
+        .AddApplicationDependencies()
+        .AuthenticationServices(builder.Configuration)
+        .AddInfrastructureDependencies(builder.Configuration);
+
+    builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
@@ -74,6 +93,19 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+
+
+// ✅ لازم يكون أول حاجة
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// ✅ Request Logging
+app.UseSerilogRequestLogging(options =>
+{
+    options.MessageTemplate =
+        "HTTP {RequestMethod} {RequestPath} => {StatusCode} في {Elapsed:0.0}ms";
+});
+
 // اعمل كده
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -87,3 +119,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
+
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "❌ Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

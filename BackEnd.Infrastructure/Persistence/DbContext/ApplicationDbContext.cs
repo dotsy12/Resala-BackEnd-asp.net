@@ -69,6 +69,15 @@ namespace BackEnd.Infrastructure.Persistence.DbContext
             builder.Entity<IdentityUserRole<string>>().HasData(
                 new IdentityUserRole<string> { UserId = adminUserId, RoleId = adminRoleId }
             );
+            builder.Entity<RefreshToken>(entity =>
+            {
+                entity.HasKey(r => r.Id);
+
+                entity.HasOne(r => r.User)
+                      .WithMany()           // ✅ بدون navigation من ApplicationUser
+                      .HasForeignKey(r => r.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
         }
 
     }

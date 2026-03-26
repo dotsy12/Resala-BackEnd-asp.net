@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Persistence.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BackEnd.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260325033703_FixRefreshTokenRelationship")]
+    partial class FixRefreshTokenRelationship
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -210,7 +213,7 @@ namespace BackEnd.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("OtpRecords", (string)null);
+                    b.ToTable("OtpRecords");
                 });
 
             modelBuilder.Entity("BackEnd.Domain.Entities.Identity.RefreshToken", b =>
@@ -242,7 +245,7 @@ namespace BackEnd.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens", (string)null);
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("BackEnd.Domain.Entities.Identity.StaffMember", b =>
@@ -312,7 +315,7 @@ namespace BackEnd.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DeliveryAreas", (string)null);
+                    b.ToTable("DeliveryAreas");
                 });
 
             modelBuilder.Entity("BackEnd.Domain.Entities.Notification.Notification", b =>
@@ -362,7 +365,7 @@ namespace BackEnd.Infrastructure.Migrations
 
                     b.HasIndex("DonorId");
 
-                    b.ToTable("Notifications", (string)null);
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("BackEnd.Domain.Entities.Payment.GeneralDonation", b =>
@@ -768,7 +771,7 @@ namespace BackEnd.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsOne("BackEnd.Domain.Entities.Identity.Donor.Email#BackEnd.Domain.ValueObjects.EmailAddress", "Email", b1 =>
+                    b.OwnsOne("BackEnd.Domain.ValueObjects.EmailAddress", "Email", b1 =>
                         {
                             b1.Property<int>("DonorId")
                                 .HasColumnType("int");
@@ -781,13 +784,13 @@ namespace BackEnd.Infrastructure.Migrations
 
                             b1.HasKey("DonorId");
 
-                            b1.ToTable("Donors", (string)null);
+                            b1.ToTable("Donors");
 
                             b1.WithOwner()
                                 .HasForeignKey("DonorId");
                         });
 
-                    b.OwnsOne("BackEnd.Domain.Entities.Identity.Donor.FullName#BackEnd.Domain.ValueObjects.PersonName", "FullName", b1 =>
+                    b.OwnsOne("BackEnd.Domain.ValueObjects.PersonName", "FullName", b1 =>
                         {
                             b1.Property<int>("DonorId")
                                 .HasColumnType("int");
@@ -806,13 +809,13 @@ namespace BackEnd.Infrastructure.Migrations
 
                             b1.HasKey("DonorId");
 
-                            b1.ToTable("Donors", (string)null);
+                            b1.ToTable("Donors");
 
                             b1.WithOwner()
                                 .HasForeignKey("DonorId");
                         });
 
-                    b.OwnsOne("BackEnd.Domain.Entities.Identity.Donor.PhoneNumber#BackEnd.Domain.ValueObjects.PhoneNumber", "PhoneNumber", b1 =>
+                    b.OwnsOne("BackEnd.Domain.ValueObjects.PhoneNumber", "PhoneNumber", b1 =>
                         {
                             b1.Property<int>("DonorId")
                                 .HasColumnType("int");
@@ -825,7 +828,7 @@ namespace BackEnd.Infrastructure.Migrations
 
                             b1.HasKey("DonorId");
 
-                            b1.ToTable("Donors", (string)null);
+                            b1.ToTable("Donors");
 
                             b1.WithOwner()
                                 .HasForeignKey("DonorId");
@@ -862,7 +865,7 @@ namespace BackEnd.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsOne("BackEnd.Domain.Entities.Identity.StaffMember.Email#BackEnd.Domain.ValueObjects.EmailAddress", "Email", b1 =>
+                    b.OwnsOne("BackEnd.Domain.ValueObjects.EmailAddress", "Email", b1 =>
                         {
                             b1.Property<int>("StaffMemberId")
                                 .HasColumnType("int");
@@ -875,13 +878,13 @@ namespace BackEnd.Infrastructure.Migrations
 
                             b1.HasKey("StaffMemberId");
 
-                            b1.ToTable("StaffMembers", (string)null);
+                            b1.ToTable("StaffMembers");
 
                             b1.WithOwner()
                                 .HasForeignKey("StaffMemberId");
                         });
 
-                    b.OwnsOne("BackEnd.Domain.Entities.Identity.StaffMember.FullName#BackEnd.Domain.ValueObjects.PersonName", "FullName", b1 =>
+                    b.OwnsOne("BackEnd.Domain.ValueObjects.PersonName", "FullName", b1 =>
                         {
                             b1.Property<int>("StaffMemberId")
                                 .HasColumnType("int");
@@ -900,13 +903,13 @@ namespace BackEnd.Infrastructure.Migrations
 
                             b1.HasKey("StaffMemberId");
 
-                            b1.ToTable("StaffMembers", (string)null);
+                            b1.ToTable("StaffMembers");
 
                             b1.WithOwner()
                                 .HasForeignKey("StaffMemberId");
                         });
 
-                    b.OwnsOne("BackEnd.Domain.Entities.Identity.StaffMember.Phone#BackEnd.Domain.ValueObjects.PhoneNumber", "Phone", b1 =>
+                    b.OwnsOne("BackEnd.Domain.ValueObjects.PhoneNumber", "Phone", b1 =>
                         {
                             b1.Property<int>("StaffMemberId")
                                 .HasColumnType("int");
@@ -919,7 +922,7 @@ namespace BackEnd.Infrastructure.Migrations
 
                             b1.HasKey("StaffMemberId");
 
-                            b1.ToTable("StaffMembers", (string)null);
+                            b1.ToTable("StaffMembers");
 
                             b1.WithOwner()
                                 .HasForeignKey("StaffMemberId");
@@ -956,7 +959,7 @@ namespace BackEnd.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsOne("BackEnd.Domain.Entities.Payment.GeneralDonation.Amount#BackEnd.Domain.ValueObjects.Money", "Amount", b1 =>
+                    b.OwnsOne("BackEnd.Domain.ValueObjects.Money", "Amount", b1 =>
                         {
                             b1.Property<int>("GeneralDonationId")
                                 .HasColumnType("int");
@@ -974,7 +977,7 @@ namespace BackEnd.Infrastructure.Migrations
 
                             b1.HasKey("GeneralDonationId");
 
-                            b1.ToTable("GeneralDonations", (string)null);
+                            b1.ToTable("GeneralDonations");
 
                             b1.WithOwner()
                                 .HasForeignKey("GeneralDonationId");
@@ -1007,7 +1010,7 @@ namespace BackEnd.Infrastructure.Migrations
 
             modelBuilder.Entity("BackEnd.Domain.Entities.Payment.PaymentRequest", b =>
                 {
-                    b.OwnsOne("BackEnd.Domain.Entities.Payment.PaymentRequest.Amount#BackEnd.Domain.ValueObjects.Money", "Amount", b1 =>
+                    b.OwnsOne("BackEnd.Domain.ValueObjects.Money", "Amount", b1 =>
                         {
                             b1.Property<int>("PaymentRequestId")
                                 .HasColumnType("int");
@@ -1025,13 +1028,13 @@ namespace BackEnd.Infrastructure.Migrations
 
                             b1.HasKey("PaymentRequestId");
 
-                            b1.ToTable("PaymentRequests", (string)null);
+                            b1.ToTable("PaymentRequests");
 
                             b1.WithOwner()
                                 .HasForeignKey("PaymentRequestId");
                         });
 
-                    b.OwnsOne("BackEnd.Domain.Entities.Payment.PaymentRequest.BranchDetails#BackEnd.Domain.ValueObjects.BranchPaymentDetails", "BranchDetails", b1 =>
+                    b.OwnsOne("BackEnd.Domain.ValueObjects.BranchPaymentDetails", "BranchDetails", b1 =>
                         {
                             b1.Property<int>("PaymentRequestId")
                                 .HasColumnType("int");
@@ -1060,13 +1063,13 @@ namespace BackEnd.Infrastructure.Migrations
 
                             b1.HasKey("PaymentRequestId");
 
-                            b1.ToTable("PaymentRequests", (string)null);
+                            b1.ToTable("PaymentRequests");
 
                             b1.WithOwner()
                                 .HasForeignKey("PaymentRequestId");
                         });
 
-                    b.OwnsOne("BackEnd.Domain.Entities.Payment.PaymentRequest.RepresentativeInfo#BackEnd.Domain.ValueObjects.RepresentativeDetails", "RepresentativeInfo", b1 =>
+                    b.OwnsOne("BackEnd.Domain.ValueObjects.RepresentativeDetails", "RepresentativeInfo", b1 =>
                         {
                             b1.Property<int>("PaymentRequestId")
                                 .HasColumnType("int");
@@ -1088,7 +1091,7 @@ namespace BackEnd.Infrastructure.Migrations
 
                             b1.HasKey("PaymentRequestId");
 
-                            b1.ToTable("PaymentRequests", (string)null);
+                            b1.ToTable("PaymentRequests");
 
                             b1.WithOwner()
                                 .HasForeignKey("PaymentRequestId");
@@ -1104,7 +1107,7 @@ namespace BackEnd.Infrastructure.Migrations
 
             modelBuilder.Entity("BackEnd.Domain.Entities.Sponsorship.Sponsorship", b =>
                 {
-                    b.OwnsOne("BackEnd.Domain.Entities.Sponsorship.Sponsorship.FinancialGoal#BackEnd.Domain.ValueObjects.Money", "FinancialGoal", b1 =>
+                    b.OwnsOne("BackEnd.Domain.ValueObjects.Money", "FinancialGoal", b1 =>
                         {
                             b1.Property<int>("SponsorshipId")
                                 .HasColumnType("int");
@@ -1122,13 +1125,37 @@ namespace BackEnd.Infrastructure.Migrations
 
                             b1.HasKey("SponsorshipId");
 
-                            b1.ToTable("Sponsorships", (string)null);
+                            b1.ToTable("Sponsorships");
 
                             b1.WithOwner()
                                 .HasForeignKey("SponsorshipId");
                         });
 
-                    b.OwnsOne("BackEnd.Domain.Entities.Sponsorship.Sponsorship.Policy#BackEnd.Domain.ValueObjects.SponsorshipPolicy", "Policy", b1 =>
+                    b.OwnsOne("BackEnd.Domain.ValueObjects.Money", "TotalCollected", b1 =>
+                        {
+                            b1.Property<int>("SponsorshipId")
+                                .HasColumnType("int");
+
+                            b1.Property<decimal>("Amount")
+                                .HasPrecision(18, 2)
+                                .HasColumnType("decimal(18,2)")
+                                .HasColumnName("Collected_Amount");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(10)
+                                .HasColumnType("nvarchar(10)")
+                                .HasColumnName("Collected_Currency");
+
+                            b1.HasKey("SponsorshipId");
+
+                            b1.ToTable("Sponsorships");
+
+                            b1.WithOwner()
+                                .HasForeignKey("SponsorshipId");
+                        });
+
+                    b.OwnsOne("BackEnd.Domain.ValueObjects.SponsorshipPolicy", "Policy", b1 =>
                         {
                             b1.Property<int>("SponsorshipId")
                                 .HasColumnType("int");
@@ -1147,31 +1174,7 @@ namespace BackEnd.Infrastructure.Migrations
 
                             b1.HasKey("SponsorshipId");
 
-                            b1.ToTable("Sponsorships", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("SponsorshipId");
-                        });
-
-                    b.OwnsOne("BackEnd.Domain.Entities.Sponsorship.Sponsorship.TotalCollected#BackEnd.Domain.ValueObjects.Money", "TotalCollected", b1 =>
-                        {
-                            b1.Property<int>("SponsorshipId")
-                                .HasColumnType("int");
-
-                            b1.Property<decimal>("Amount")
-                                .HasPrecision(18, 2)
-                                .HasColumnType("decimal(18,2)")
-                                .HasColumnName("Collected_Amount");
-
-                            b1.Property<string>("Currency")
-                                .IsRequired()
-                                .HasMaxLength(10)
-                                .HasColumnType("nvarchar(10)")
-                                .HasColumnName("Collected_Currency");
-
-                            b1.HasKey("SponsorshipId");
-
-                            b1.ToTable("Sponsorships", (string)null);
+                            b1.ToTable("Sponsorships");
 
                             b1.WithOwner()
                                 .HasForeignKey("SponsorshipId");
@@ -1200,7 +1203,7 @@ namespace BackEnd.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsOne("BackEnd.Domain.Entities.Sponsorship.SponsorshipSubscription.Amount#BackEnd.Domain.ValueObjects.Money", "Amount", b1 =>
+                    b.OwnsOne("BackEnd.Domain.ValueObjects.Money", "Amount", b1 =>
                         {
                             b1.Property<int>("SponsorshipSubscriptionId")
                                 .HasColumnType("int");
@@ -1218,7 +1221,7 @@ namespace BackEnd.Infrastructure.Migrations
 
                             b1.HasKey("SponsorshipSubscriptionId");
 
-                            b1.ToTable("SponsorshipSubscriptions", (string)null);
+                            b1.ToTable("SponsorshipSubscriptions");
 
                             b1.WithOwner()
                                 .HasForeignKey("SponsorshipSubscriptionId");

@@ -6,6 +6,7 @@ using BackEnd.Domain.Entities.Identity;
 using BackEnd.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 
 public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
 {
@@ -15,6 +16,7 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
     private readonly IStaffRepository _staffRepo;
     private readonly IJwtService _jwtService;
     private readonly IRefreshTokenRepository _refreshTokenRepo;
+    private readonly ILogger<LoginHandler> _logger;
 
     public LoginHandler(
         UserManager<ApplicationUser> userManager,
@@ -22,7 +24,8 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
         IDonorRepository donorRepo,
         IStaffRepository staffRepo,
         IJwtService jwtService,
-        IRefreshTokenRepository refreshTokenRepo)
+        IRefreshTokenRepository refreshTokenRepo,
+         ILogger<LoginHandler> logger)
     {
         _userManager = userManager;
         _userRepo = userRepo;
@@ -30,12 +33,16 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
         _staffRepo = staffRepo;
         _jwtService = jwtService;
         _refreshTokenRepo = refreshTokenRepo;
+        _logger = logger;
     }
 
     public async Task<Result<LoginResponse>> Handle(
         LoginCommand request, CancellationToken ct)
     {
-        // 1. إيجاد المستخدم
+        // 1. Find user
+        var identifier = request.PhoneNumber ?? request.Username;
+        _logger.LogInformation("Login attempt: {Identifier}", identifier);
+
         ApplicationUser? user = null;
 
         if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
@@ -44,25 +51,35 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
             user = await _userRepo.GetByUsernameAsync(request.Username, ct);
 
         if (user is null)
+        {
+            _logger.LogWarning("Login failed — user not found: {Identifier}", identifier);
             return Result<LoginResponse>.Failure(
-                "بيانات الدخول غير صحيحة.", ErrorType.Unauthorized);
+                    "بيانات الدخول غير صحيحة.", ErrorType.Unauthorized);
+        }
 
-        // 2. التحقق من الباسورد
+        // 2. Check password
         var passwordOk = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!passwordOk)
-            return Result<LoginResponse>.Failure(
-                "بيانات الدخول غير صحيحة.", ErrorType.Unauthorized);
+        {
+            _logger.LogWarning("Login failed — invalid password: {Identifier}", identifier);
 
-        // 3. التحقق من التفعيل
+            return Result<LoginResponse>.Failure(
+                    "بيانات الدخول غير صحيحة.", ErrorType.Unauthorized);
+        }
+
+        // 3. Check activation
         if (!user.IsActive)
+        {
+            _logger.LogWarning("Login failed — inactive account: {UserId}", user.Id);
             return Result<LoginResponse>.Failure(
                 "الحساب غير مفعّل. يرجى التحقق من بريدك الإلكتروني.",
                 ErrorType.Unauthorized);
+        }
 
-        // 4. الـ Role
+        // 4. Get role
         var role = await _userRepo.GetRoleAsync(user, ct) ?? "Donor";
 
-        // 5. DonorId أو StaffId
+        // 5. DonorId or StaffId
         int? donorId = null, staffId = null;
 
         if (role == "Donor")
@@ -73,7 +90,7 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
         {
             staffId = await _staffRepo.GetIdByUserIdAsync(user.Id, ct);
 
-            // التحقق من حالة الـ Staff
+            // Check staff status
             if (staffId.HasValue)
             {
                 var status = await _staffRepo.GetStatusByIdAsync(staffId.Value, ct);
@@ -88,9 +105,8 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
             }
         }
 
-        // 6. توليد الـ Token
+        // 6. Generate token
         var token = _jwtService.GenerateToken(user, role, donorId, staffId);
-        // بعد توليد الـ token أضف:
         var refreshToken = _jwtService.GenerateRefreshToken();
 
         var refreshTokenEntity = new RefreshToken
@@ -104,9 +120,12 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
         await _refreshTokenRepo.AddAsync(refreshTokenEntity, ct);
         await _refreshTokenRepo.SaveChangesAsync(ct);
 
+        _logger.LogInformation(
+          "Login successful: {UserId} — Role: {Role}", user.Id, role);
+
         return Result<LoginResponse>.Success(new LoginResponse(
             Token: token,
-            RefreshToken: refreshToken,   // ✅
+            RefreshToken: refreshToken,
             Role: role,
             UserId: donorId ?? staffId ?? 0,
             Name: $"{user.FirstName} {user.LastName}".Trim(),
