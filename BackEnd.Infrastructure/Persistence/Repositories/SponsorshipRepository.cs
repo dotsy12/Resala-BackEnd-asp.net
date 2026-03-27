@@ -1,13 +1,8 @@
 ﻿using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Domain.Entities.Sponsorship;
-using BackEnd.Domain.Enums;
+
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 using BackEnd.Infrastructure.Persistence.DbContext;
 
 namespace BackEnd.Infrastructure.Persistence.Repositories

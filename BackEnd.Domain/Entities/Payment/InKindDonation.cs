@@ -17,7 +17,18 @@ namespace BackEnd.Domain.Entities.Payment
         public StaffMember? RecordedBy { get; private set; }
 
         private InKindDonation() { }
+        public void Update(string donationTypeName, int quantity, string? description)
+        {
+            if (quantity <= 0)
+                throw new ArgumentException("Invalid quantity");
 
+            if (string.IsNullOrWhiteSpace(donationTypeName))
+                throw new ArgumentException("Donation type required");
+
+            DonationTypeName = donationTypeName.Trim();
+            Quantity = quantity;
+            Description = description?.Trim();
+        }
         public static InKindDonation Create(
             int donorId, string donationTypeName,
             int quantity, string? description, int recordedByStaffId)

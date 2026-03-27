@@ -18,7 +18,10 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
                 .Where(d => d.UserId == userId)
                 .Select(d => (int?)d.Id)
                 .FirstOrDefaultAsync(ct);
-
+       
+        public Task<Donor?> GetByIdAsync(int id, CancellationToken ct)
+            => _db.Donors
+                .FirstOrDefaultAsync(d => d.Id == id, ct);
         public Task SaveChangesAsync(CancellationToken ct)
             => _db.SaveChangesAsync(ct);
     }

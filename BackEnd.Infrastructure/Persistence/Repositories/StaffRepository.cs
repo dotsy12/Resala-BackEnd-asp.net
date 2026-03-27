@@ -25,7 +25,10 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
                 .Where(s => s.Id == staffId)
                 .Select(s => (AccountStatus?)s.AccountStatus)
                 .FirstOrDefaultAsync(ct);
-
+        // StaffRepository.cs
+        public Task<StaffMember?> GetByIdAsync(int id, CancellationToken ct)
+            => _db.StaffMembers
+                .FirstOrDefaultAsync(s => s.Id == id, ct);
         public Task SaveChangesAsync(CancellationToken ct)
             => _db.SaveChangesAsync(ct);
     }

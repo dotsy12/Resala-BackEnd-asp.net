@@ -1,9 +1,4 @@
 ﻿using BackEnd.Domain.Entities.Sponsorship;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BackEnd.Application.Interfaces.Repositories
 {
