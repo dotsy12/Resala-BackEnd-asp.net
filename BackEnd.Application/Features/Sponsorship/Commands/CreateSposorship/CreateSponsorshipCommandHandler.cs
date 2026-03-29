@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 namespace BackEnd.Application.Features.Sponsorship.Commands.Create
 {
     public class CreateSponsorshipCommandHandler
-        : IRequestHandler<CreateSponsorshipCommand, SponsorshipViewModel>
+       : IRequestHandler<CreateSponsorshipCommand, Result<SponsorshipViewModel>>
     {
         private readonly ISponsorshipRepository _repository;
 
@@ -26,7 +26,7 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.Create
             _repository = repository;
         }
 
-        public async Task<SponsorshipViewModel> Handle(
+        public async Task<Result<SponsorshipViewModel>> Handle(
             CreateSponsorshipCommand request,
             CancellationToken cancellationToken)
         {
@@ -46,7 +46,7 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.Create
 
             var created = await _repository.CreateAsync(sponsorship, cancellationToken);
 
-            return new SponsorshipViewModel
+            var viewModel = new SponsorshipViewModel
             {
                 Id = created.Id,
                 Name = created.Name,
@@ -58,6 +58,8 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.Create
                 IsActive = created.IsActive,
                 CreatedAt = created.CreatedOn
             };
+
+            return Result<SponsorshipViewModel>.Success(viewModel, "Sponsorship created successfully");
         }
     }
 

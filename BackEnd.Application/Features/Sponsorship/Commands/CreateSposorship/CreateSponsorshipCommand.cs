@@ -1,4 +1,5 @@
-﻿using BackEnd.Application.Dtos.Sponsorship;
+﻿using BackEnd.Application.Common.ResponseFormat;
+using BackEnd.Application.Dtos.Sponsorship;
 using BackEnd.Application.ViewModles;
 using MediatR;
 using System;
@@ -9,6 +10,6 @@ using System.Threading.Tasks;
 
 namespace BackEnd.Application.Features.Sponsorship.Commands.Create
 {
-    public record CreateSponsorshipCommand(CreateSponsorshipDto Dto) : IRequest<SponsorshipViewModel>;
+    public record CreateSponsorshipCommand(CreateSponsorshipDto Dto) : IRequest<Result<SponsorshipViewModel>>;
 
 }

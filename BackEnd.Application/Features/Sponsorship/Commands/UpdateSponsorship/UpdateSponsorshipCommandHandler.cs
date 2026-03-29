@@ -1,4 +1,5 @@
-﻿using BackEnd.Application.Interfaces.Repositories;
+﻿using BackEnd.Application.Common.ResponseFormat;
+using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Application.ViewModles;
 using BackEnd.Domain.Exceptions;
 using BackEnd.Domain.ValueObjects;
@@ -11,8 +12,8 @@ using System.Threading.Tasks;
 
 namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
 {
-    public class UpdateSponsorshipCommandHandler : IRequestHandler<UpdateSponsorshipCommand, SponsorshipViewModel>
-
+    public class UpdateSponsorshipCommandHandler
+     : IRequestHandler<UpdateSponsorshipCommand, Result<SponsorshipViewModel>>
     {
         private readonly ISponsorshipRepository _repository;
 
@@ -21,14 +22,19 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
             _repository = repository;
         }
 
-        public async Task<SponsorshipViewModel> Handle(
+        public async Task<Result<SponsorshipViewModel>> Handle(
             UpdateSponsorshipCommand request,
             CancellationToken cancellationToken)
         {
             var sponsorship = await _repository.GetByIdAsync(request.Id, cancellationToken);
 
             if (sponsorship is null)
-                throw new SponsorshipNotActiveException(request.Id);
+            {
+                return Result<SponsorshipViewModel>.Failure(
+                    $"Sponsorship with id {request.Id} not found",
+                    ErrorType.NotFound
+                );
+            }
 
             var dto = request.Dto;
 
@@ -39,9 +45,7 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
 
             sponsorship.UpdateImages(dto.ImageUrl, dto.Icon);
 
-            sponsorship.UpdatePolicy(
-                sponsorship.Policy
-            );
+            sponsorship.UpdatePolicy(sponsorship.Policy);
 
             if (dto.IsActive)
                 sponsorship.Activate();
@@ -50,7 +54,7 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
 
             await _repository.UpdateAsync(sponsorship, cancellationToken);
 
-            return new SponsorshipViewModel
+            var viewModel = new SponsorshipViewModel
             {
                 Id = sponsorship.Id,
                 Name = sponsorship.Name,
@@ -62,6 +66,8 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
                 IsActive = sponsorship.IsActive,
                 CreatedAt = sponsorship.CreatedOn
             };
+
+            return Result<SponsorshipViewModel>.Success(viewModel, "Sponsorship updated successfully");
         }
     }
 }

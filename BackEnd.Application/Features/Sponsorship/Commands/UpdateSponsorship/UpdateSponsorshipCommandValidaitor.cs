@@ -17,17 +17,19 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
             public UpdateSponsorshipValidator()
             {
                 RuleFor(x => x.Id)
-                    .GreaterThan(0);
+                    .GreaterThan(0)
+                    .WithMessage("Id must be greater than 0");
 
                 RuleFor(x => x.Dto.Name)
-                    .NotEmpty()
-                    .MaximumLength(200);
+                    .NotEmpty().WithMessage("Name is required")
+                    .MaximumLength(200).WithMessage("Name max length is 200");
 
                 RuleFor(x => x.Dto.Description)
-                    .NotEmpty();
+                    .NotEmpty().WithMessage("Description is required");
 
                 RuleFor(x => x.Dto.TargetAmount)
                     .GreaterThan(0)
+                    .WithMessage("TargetAmount must be greater than 0")
                     .When(x => x.Dto.TargetAmount.HasValue);
             }
         }

@@ -81,7 +81,7 @@ namespace BackEndApi.Controllers
         {
             var command = new CreateSponsorshipCommand(dto);
             var result = await _mediator.Send(command, cancellationToken);
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            return CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result);
         }
 
         // ═══════════════════════════════════════════════════

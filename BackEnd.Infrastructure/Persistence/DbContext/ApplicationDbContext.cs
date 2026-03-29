@@ -1,4 +1,5 @@
-﻿using BackEnd.Domain.Entities.Identity;
+﻿using BackEnd.Domain.Entities.EmergencyCase;
+using BackEnd.Domain.Entities.Identity;
 using BackEnd.Domain.Entities.Notification;
 using BackEnd.Domain.Entities.Payment;
 using BackEnd.Domain.Entities.Sponsorship;
@@ -27,6 +28,7 @@ namespace BackEnd.Infrastructure.Persistence.DbContext
         public DbSet<Sponsorship> Sponsorships { get; set; }
         public DbSet<SponsorshipSubscription> SponsorshipSubscriptions { get; set; }
         public DbSet<PaymentRequest> PaymentRequests { get; set; }
+        public DbSet<EmergencyCase> EmergencyCases { get; set; }
         public DbSet<GeneralDonation> GeneralDonations { get; set; }
         public DbSet<InKindDonation> InKindDonations { get; set; }
         public DbSet<Notification> Notifications { get; set; }
