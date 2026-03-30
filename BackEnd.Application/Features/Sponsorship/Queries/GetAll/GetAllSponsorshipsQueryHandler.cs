@@ -1,4 +1,8 @@
-﻿using System;
+﻿using BackEnd.Application.Common.ResponseFormat;
+using BackEnd.Application.Interfaces.Repositories;
+using BackEnd.Application.ViewModles;
+using MediatR;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,12 +10,10 @@ using System.Threading.Tasks;
 
 namespace BackEnd.Application.Features.Sponsorship.Queries.GetAll
 {
-    using MediatR;
-    using BackEnd.Application.Interfaces.Repositories;
-    using BackEnd.Application.ViewModles;
+
 
     public class GetAllSponsorshipsQueryHandler
-        : IRequestHandler<GetAllSponsorshipsQuery, IEnumerable<SponsorshipViewModel>>
+     : IRequestHandler<GetAllSponsorshipsQuery, Result<IEnumerable<SponsorshipViewModel>>>
     {
         private readonly ISponsorshipRepository _repository;
 
@@ -20,13 +22,13 @@ namespace BackEnd.Application.Features.Sponsorship.Queries.GetAll
             _repository = repository;
         }
 
-        public async Task<IEnumerable<SponsorshipViewModel>> Handle(
+        public async Task<Result<IEnumerable<SponsorshipViewModel>>> Handle(
             GetAllSponsorshipsQuery request,
             CancellationToken cancellationToken)
         {
             var sponsorships = await _repository.GetAllAsync(cancellationToken);
 
-            return sponsorships.Select(s => new SponsorshipViewModel
+            var result = sponsorships.Select(s => new SponsorshipViewModel
             {
                 Id = s.Id,
                 Name = s.Name,
@@ -34,6 +36,8 @@ namespace BackEnd.Application.Features.Sponsorship.Queries.GetAll
                 IsActive = s.IsActive,
                 CreatedAt = s.CreatedOn
             });
+
+            return Result<IEnumerable<SponsorshipViewModel>>.Success(result);
         }
     }
 }

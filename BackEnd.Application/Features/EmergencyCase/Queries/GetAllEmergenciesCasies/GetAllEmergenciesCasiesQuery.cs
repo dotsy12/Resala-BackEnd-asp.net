@@ -7,8 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BackEnd.Application.Features.Sponsorship.Queries.GetById
+namespace BackEnd.Application.Features.EmergencyCase.Queries.GetAllEmergenciesCasies
 {
-    public record GetSponsorshipByIdQuery(int id): IRequest<Result<SponsorshipViewModel>>;
-   
+    public record GetAllEmergencyCasesQuery
+      : IRequest<Result<IEnumerable<EmergencyCaseViewModel>>>;
 }

@@ -1,4 +1,5 @@
-﻿using BackEnd.Application.Interfaces.Repositories;
+﻿using BackEnd.Application.Common.ResponseFormat;
+using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Application.ViewModles;
 using BackEnd.Domain.Exceptions;
 using MediatR;
@@ -10,40 +11,46 @@ using System.Threading.Tasks;
 
 namespace BackEnd.Application.Features.Sponsorship.Queries.GetById
 {
-   
-    
 
-    namespace BackEnd.Application.Features.Sponsorship.Queries.GetById
+    public class GetSponsorshipByIdQueryHandler
+ : IRequestHandler<GetSponsorshipByIdQuery, Result<SponsorshipViewModel>>
     {
-        public class GetSponsorshipByIdQueryHandler : IRequestHandler<GetSponsorshipByIdQuery, SponsorshipViewModel>
+        private readonly ISponsorshipRepository _repository;
+
+        public GetSponsorshipByIdQueryHandler(ISponsorshipRepository repository)
         {
-            private readonly ISponsorshipRepository _repository;
+            _repository = repository;
+        }
 
-            public GetSponsorshipByIdQueryHandler(ISponsorshipRepository repository)
+        public async Task<Result<SponsorshipViewModel>> Handle(
+            GetSponsorshipByIdQuery request,
+            CancellationToken cancellationToken)
+        {
+            var sponsorship = await _repository.GetByIdAsync(request.id, cancellationToken);
+
+            if (sponsorship is null)
             {
-                _repository = repository;
+                return Result<SponsorshipViewModel>.Failure(
+                    $"Sponsorship with id {request.id} not found",
+                    ErrorType.NotFound
+                );
             }
 
-            public async Task<SponsorshipViewModel> Handle(GetSponsorshipByIdQuery request, CancellationToken cancellationToken)
+            var viewModel = new SponsorshipViewModel
             {
-                var sponsorship = await _repository.GetByIdAsync(request.id, cancellationToken);
+                Id = sponsorship.Id,
+                Name = sponsorship.Name,
+                Description = sponsorship.Description,
+                ImageUrl = sponsorship.ImagePath ?? "",
+                Icon = sponsorship.IconPath ?? "",
+                TargetAmount = sponsorship.FinancialGoal?.Amount,
+                CollectedAmount = sponsorship.TotalCollected.Amount,
+                IsActive = sponsorship.IsActive,
+                CreatedAt = sponsorship.CreatedOn
+            };
 
-                if (sponsorship is null)
-                    throw new SponsorshipNotActiveException(request.id);
-
-                return new SponsorshipViewModel
-                {
-                    Id = sponsorship.Id,
-                    Name = sponsorship.Name,
-                    Description = sponsorship.Description,
-                    ImageUrl = sponsorship.ImagePath ?? "",
-                    Icon = sponsorship.IconPath ?? "",
-                    TargetAmount = sponsorship.FinancialGoal?.Amount,
-                    CollectedAmount = sponsorship.TotalCollected.Amount,
-                    IsActive = sponsorship.IsActive,
-                    CreatedAt = sponsorship.CreatedOn
-                };
-            }
+            return Result<SponsorshipViewModel>.Success(viewModel);
         }
     }
-}
+ }
+

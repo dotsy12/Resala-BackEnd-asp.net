@@ -6,10 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BackEnd.Application.Features.Sponsorship.Commands.DeleteSponsorship
+namespace BackEnd.Application.Features.EmergencyCase.Commands.DeleteEmergencyCase
 {
-
-    public record DeleteSponsorshipCommand(int Id)
-    : IRequest<Result<bool>>;
-
+    public record DeleteEmergencyCaseCommand(int id) : IRequest<Result<bool>>;
 }
+  

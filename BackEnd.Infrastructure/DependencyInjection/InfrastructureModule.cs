@@ -36,6 +36,7 @@ namespace BackEnd.Infrastructure.InfrastructureDependencies
             services.AddScoped<IInKindDonationRepository, InKindDonationRepository>();
 
 
+            services.AddScoped<IEmergencyCaseRepository, EmergencyCaseRepository>();
             services.AddScoped<ISponsorshipRepository, SponsorshipRepository>();
 
             services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
