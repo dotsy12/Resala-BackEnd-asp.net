@@ -1,56 +1,56 @@
 ﻿using BackEnd.Application.Common.ResponseFormat;
-using BackEnd.Application.Features.Sponsorship.Queries.GetById;
 using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Application.ViewModles;
 using BackEnd.Domain.ValueObjects;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCase
 {
-
     public class UpdateEmergencyCaseCommandHandler
       : IRequestHandler<UpdateEmergencyCaseCommand, Result<EmergencyCaseViewModel>>
     {
         private readonly IEmergencyCaseRepository _repository;
+        private readonly ILogger<UpdateEmergencyCaseCommandHandler> _logger;
 
-        public UpdateEmergencyCaseCommandHandler(IEmergencyCaseRepository repository)
+        public UpdateEmergencyCaseCommandHandler(
+            IEmergencyCaseRepository repository,
+            ILogger<UpdateEmergencyCaseCommandHandler> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
         public async Task<Result<EmergencyCaseViewModel>> Handle(
             UpdateEmergencyCaseCommand request,
             CancellationToken cancellationToken)
         {
+            _logger.LogInformation("بدء تعديل حالة طارئة: Id={Id}", request.Id);
+
             var entity = await _repository.GetByIdAsync(request.Id, cancellationToken);
 
             if (entity == null)
             {
                 return Result<EmergencyCaseViewModel>.Failure(
-                    "Emergency case not found",
+                    "الحالة الطارئة غير موجودة.",
                     ErrorType.NotFound);
             }
 
             var dto = request.Dto;
 
-            // Update basic info
+            // ✅ Update basic info
             entity.UpdateDetails(dto.Title, dto.Description, dto.ImageUrl);
 
-            // Update urgency
+            // ✅ Update urgency
             entity.SetUrgency(dto.UrgencyLevel);
 
-            // Update RequiredAmount
+            // ✅ Update RequiredAmount
             if (dto.RequiredAmount.HasValue)
             {
                 if (dto.RequiredAmount.Value <= 0)
                 {
                     return Result<EmergencyCaseViewModel>.Failure(
-                        "Required amount must be greater than zero",
+                        "المبلغ المطلوب يجب أن يكون أكبر من صفر.",
                         ErrorType.BadRequest);
                 }
 
@@ -58,16 +58,16 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCas
                 entity.UpdateRequiredAmount(money);
             }
 
-            // Activate / Deactivate
+            // ✅ Activate / Deactivate
             if (dto.IsActive)
                 entity.Activate();
             else
                 entity.Deactivate();
 
-            // Save
+            // ✅ Save
             await _repository.UpdateAsync(entity, cancellationToken);
 
-            // Map
+            // ✅ Mapping
             var vm = new EmergencyCaseViewModel
             {
                 Id = entity.Id,
@@ -82,8 +82,12 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCas
                 CreatedAt = entity.CreatedOn
             };
 
-            return Result<EmergencyCaseViewModel>.Success(vm, "Updated successfully");
+            _logger.LogInformation("تم تعديل الحالة الطارئة بنجاح: Id={Id}", entity.Id);
+
+            return Result<EmergencyCaseViewModel>.Success(
+                vm,
+                "تم تعديل الحالة الطارئة بنجاح."
+            );
         }
     }
 }
-

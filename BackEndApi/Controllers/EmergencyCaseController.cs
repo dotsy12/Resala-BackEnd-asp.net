@@ -34,6 +34,27 @@ namespace BackEnd.API.Controllers
         /// يُنشئ حالة حرجة جديدة في النظام.
         ///
         /// **⚠️ يتطلب Bearer Token بدور Admin**
+        ///
+        /// **Request Example:**
+        /// ```json
+        /// {
+        ///   "title": "عملية عاجلة",
+        ///   "description": "مريض يحتاج عملية فورًا",
+        ///   "targetAmount": 50000
+        /// }
+        /// ```
+        ///
+        /// **Success Response (201):**
+        /// ```json
+        /// {
+        ///   "id": 1,
+        ///   "title": "عملية عاجلة",
+        ///   "description": "مريض يحتاج عملية فورًا",
+        ///   "targetAmount": 50000,
+        ///   "collectedAmount": 0,
+        ///   "createdOn": "2026-03-25T00:00:00"
+        /// }
+        /// ```
         /// </remarks>
         [HttpPost]
         [Authorize(Roles = "Admin")]
@@ -43,6 +64,7 @@ namespace BackEnd.API.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [SwaggerOperation(
             Summary = "[Admin] إنشاء حالة حرجة",
+            Description = "إنشاء حالة حرجة جديدة — يتطلب Admin",
             OperationId = "EmergencyCases_Create",
             Tags = new[] { "EmergencyCases — Admin" }
         )]
@@ -54,9 +76,7 @@ namespace BackEnd.API.Controllers
             var result = await _mediator.Send(command, cancellationToken);
 
             return CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value);
-
-
-         }
+        }
 
         // ═══════════════════════════════════════════════════
         //  2. GET ALL
@@ -65,11 +85,15 @@ namespace BackEnd.API.Controllers
         /// <summary>
         /// جلب كل الحالات الحرجة
         /// </summary>
+        /// <remarks>
+        /// يرجع قائمة بكل الحالات الحرجة المسجلة في النظام.
+        /// </remarks>
         [HttpGet]
         [AllowAnonymous]
         [ProducesResponseType(typeof(IEnumerable<EmergencyCaseViewModel>), StatusCodes.Status200OK)]
         [SwaggerOperation(
             Summary = "جلب كل الحالات الحرجة",
+            Description = "عرض جميع الحالات الحرجة المتاحة",
             OperationId = "EmergencyCases_GetAll",
             Tags = new[] { "EmergencyCases — Public" }
         )]
@@ -87,12 +111,16 @@ namespace BackEnd.API.Controllers
         /// <summary>
         /// جلب حالة حرجة بالـ ID
         /// </summary>
+        /// <param name="id">رقم الحالة الحرجة</param>
+        /// <response code="200">تفاصيل الحالة</response>
+        /// <response code="404">الحالة غير موجودة</response>
         [HttpGet("{id}")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(EmergencyCaseViewModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [SwaggerOperation(
             Summary = "جلب حالة حرجة بالـ ID",
+            Description = "عرض تفاصيل حالة حرجة باستخدام المعرف",
             OperationId = "EmergencyCases_GetById",
             Tags = new[] { "EmergencyCases — Public" }
         )]
@@ -111,6 +139,12 @@ namespace BackEnd.API.Controllers
         /// <summary>
         /// [Admin] تعديل حالة حرجة
         /// </summary>
+        /// <param name="id">رقم الحالة الحرجة</param>
+        /// <remarks>
+        /// تعديل بيانات حالة حرجة موجودة.
+        ///
+        /// **⚠️ يتطلب Bearer Token بدور Admin**
+        /// </remarks>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(EmergencyCaseViewModel), StatusCodes.Status200OK)]
@@ -120,6 +154,7 @@ namespace BackEnd.API.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [SwaggerOperation(
             Summary = "[Admin] تعديل حالة حرجة",
+            Description = "تعديل بيانات حالة حرجة — يتطلب Admin",
             OperationId = "EmergencyCases_Update",
             Tags = new[] { "EmergencyCases — Admin" }
         )]
@@ -141,6 +176,9 @@ namespace BackEnd.API.Controllers
         /// <summary>
         /// [Admin] حذف حالة حرجة
         /// </summary>
+        /// <param name="id">رقم الحالة الحرجة</param>
+        /// <response code="204">تم الحذف بنجاح</response>
+        /// <response code="404">الحالة غير موجودة</response>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -149,6 +187,7 @@ namespace BackEnd.API.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [SwaggerOperation(
             Summary = "[Admin] حذف حالة حرجة",
+            Description = "حذف حالة حرجة من النظام — يتطلب Admin",
             OperationId = "EmergencyCases_Delete",
             Tags = new[] { "EmergencyCases — Admin" }
         )]

@@ -1,14 +1,9 @@
 ﻿using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Application.ViewModles;
-using BackEnd.Domain.Exceptions;
 using BackEnd.Domain.ValueObjects;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
 {
@@ -16,37 +11,41 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
      : IRequestHandler<UpdateSponsorshipCommand, Result<SponsorshipViewModel>>
     {
         private readonly ISponsorshipRepository _repository;
+        private readonly ILogger<UpdateSponsorshipCommandHandler> _logger;
 
-        public UpdateSponsorshipCommandHandler(ISponsorshipRepository repository)
+        public UpdateSponsorshipCommandHandler(
+            ISponsorshipRepository repository,
+            ILogger<UpdateSponsorshipCommandHandler> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
         public async Task<Result<SponsorshipViewModel>> Handle(
             UpdateSponsorshipCommand request,
             CancellationToken cancellationToken)
         {
+            _logger.LogInformation("بدء تعديل برنامج كفالة: Id={Id}", request.Id);
+
             var sponsorship = await _repository.GetByIdAsync(request.Id, cancellationToken);
 
             if (sponsorship is null)
             {
                 return Result<SponsorshipViewModel>.Failure(
-                    $"Sponsorship with id {request.Id} not found",
+                    "برنامج الكفالة غير موجود.",
                     ErrorType.NotFound
                 );
             }
 
             var dto = request.Dto;
 
-            Money? goal = null;
-
-            if (dto.TargetAmount.HasValue)
-                goal = new Money(dto.TargetAmount.Value);
-
+            // ✅ Update images
             sponsorship.UpdateImages(dto.ImageUrl, dto.Icon);
 
-            sponsorship.UpdatePolicy(sponsorship.Policy);
+           
+             sponsorship.UpdatePolicy(sponsorship.Policy);
 
+            // ✅ Activate / Deactivate
             if (dto.IsActive)
                 sponsorship.Activate();
             else
@@ -67,7 +66,12 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
                 CreatedAt = sponsorship.CreatedOn
             };
 
-            return Result<SponsorshipViewModel>.Success(viewModel, "Sponsorship updated successfully");
+            _logger.LogInformation("تم تعديل برنامج الكفالة بنجاح: Id={Id}", sponsorship.Id);
+
+            return Result<SponsorshipViewModel>.Success(
+                viewModel,
+                "تم تعديل برنامج الكفالة بنجاح."
+            );
         }
     }
 }

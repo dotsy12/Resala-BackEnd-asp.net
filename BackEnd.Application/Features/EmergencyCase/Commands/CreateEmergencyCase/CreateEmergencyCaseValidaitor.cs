@@ -1,9 +1,4 @@
 ﻿using FluentValidation;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCase
 {
@@ -12,17 +7,17 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCas
         public CreateEmergencyCaseValidator()
         {
             RuleFor(x => x.Dto.Title)
-                .NotEmpty().WithMessage("Title is required")
-                .MaximumLength(200).WithMessage("Title max length is 200");
+                .NotEmpty().WithMessage("العنوان مطلوب.")
+                .MaximumLength(200).WithMessage("العنوان لا يتجاوز 200 حرف.");
 
             RuleFor(x => x.Dto.Description)
-                .NotEmpty().WithMessage("Description is required");
+                .NotEmpty().WithMessage("الوصف مطلوب.");
 
             RuleFor(x => x.Dto.RequiredAmount)
-                .GreaterThan(0).WithMessage("RequiredAmount must be greater than 0");
+                .GreaterThan(0).WithMessage("المبلغ المطلوب يجب أن يكون أكبر من صفر.");
 
             RuleFor(x => x.Dto.UrgencyLevel)
-                .IsInEnum().WithMessage("Invalid urgency level");
+                .IsInEnum().WithMessage("مستوى الحالة غير صحيح.");
         }
     }
 }
