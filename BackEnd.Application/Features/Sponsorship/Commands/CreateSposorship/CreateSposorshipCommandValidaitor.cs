@@ -1,27 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using BackEnd.Application.Features.Sponsorship.Commands.Create;
+﻿using BackEnd.Application.Features.Sponsorship.Commands.Create;
 using FluentValidation;
 
 namespace BackEnd.Application.Features.Sponsorship.Commands.CreateSposorship
 {
-   
-
     public class CreateSponsorshipCommandValidator : AbstractValidator<CreateSponsorshipCommand>
     {
         public CreateSponsorshipCommandValidator()
         {
             RuleFor(x => x.Dto.Name)
-                .NotEmpty().WithMessage("Name is required");
+                .NotEmpty().WithMessage("اسم برنامج الكفالة مطلوب.");
 
             RuleFor(x => x.Dto.Description)
-                .NotEmpty().WithMessage("Description is required");
+                .NotEmpty().WithMessage("الوصف مطلوب.");
 
             RuleFor(x => x.Dto.TargetAmount)
-                .GreaterThanOrEqualTo(0).WithMessage("TargetAmount must be >= 0");
+                .GreaterThanOrEqualTo(0)
+                .WithMessage("المبلغ المستهدف يجب أن يكون صفر أو أكبر.");
         }
     }
 }

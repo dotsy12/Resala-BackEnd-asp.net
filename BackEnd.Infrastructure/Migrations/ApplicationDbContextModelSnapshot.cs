@@ -164,7 +164,7 @@ namespace BackEnd.Infrastructure.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@RESALA.ORG",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAENsyWjE/iWrBWRxUgE75twiJv8D0AxWZKlYGeMl6W/GGETJvno2tbjGuvpgby11D0g==",
+                            PasswordHash = "AQAAAAIAAYagAAAAELYmUzpyGBu8niYLpTtbAw5Oi7Zo+Kx44j4RFch1DNZoIT8CID9WqsocVDJ6cLYXoA==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "admin-security",
                             TwoFactorEnabled = false,

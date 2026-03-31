@@ -3,13 +3,9 @@ using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Application.ViewModles;
 using BackEnd.Domain.ValueObjects;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BackEnd.Domain.Entities;
 using BackEnd.Domain.Entities.EmergencyCase;
+using Microsoft.Extensions.Logging;
 
 namespace BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCase
 {
@@ -17,16 +13,22 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCas
       : IRequestHandler<CreateEmergencyCaseCommand, Result<EmergencyCaseViewModel>>
     {
         private readonly IEmergencyCaseRepository _repository;
+        private readonly ILogger<CreateEmergencyCaseCommandHandler> _logger;
 
-        public CreateEmergencyCaseCommandHandler(IEmergencyCaseRepository repository)
+        public CreateEmergencyCaseCommandHandler(
+            IEmergencyCaseRepository repository,
+            ILogger<CreateEmergencyCaseCommandHandler> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
         public async Task<Result<EmergencyCaseViewModel>> Handle(
             CreateEmergencyCaseCommand request,
             CancellationToken cancellationToken)
         {
+            _logger.LogInformation("بدء إنشاء حالة طارئة جديدة");
+
             var dto = request.Dto;
 
             // ✅ Value Object
@@ -58,9 +60,11 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCas
                 CreatedAt = created.CreatedOn
             };
 
+            _logger.LogInformation("تم إنشاء الحالة الطارئة بنجاح: Id={Id}", created.Id);
+
             return Result<EmergencyCaseViewModel>.Success(
                 viewModel,
-                "Emergency case created successfully"
+                "تم إنشاء الحالة الطارئة بنجاح."
             );
         }
     }

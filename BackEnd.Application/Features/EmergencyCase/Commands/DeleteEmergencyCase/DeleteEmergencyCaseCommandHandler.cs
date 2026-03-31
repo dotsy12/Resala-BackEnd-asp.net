@@ -1,11 +1,7 @@
 ﻿using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Interfaces.Repositories;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace BackEnd.Application.Features.EmergencyCase.Commands.DeleteEmergencyCase
 {
@@ -13,41 +9,49 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.DeleteEmergencyCas
         : IRequestHandler<DeleteEmergencyCaseCommand, Result<bool>>
     {
         private readonly IEmergencyCaseRepository _repository;
+        private readonly ILogger<DeleteEmergencyCaseCommandHandler> _logger;
 
-        public DeleteEmergencyCaseCommandHandler(IEmergencyCaseRepository repository)
+        public DeleteEmergencyCaseCommandHandler(
+            IEmergencyCaseRepository repository,
+            ILogger<DeleteEmergencyCaseCommandHandler> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
         public async Task<Result<bool>> Handle(
             DeleteEmergencyCaseCommand request,
             CancellationToken cancellationToken)
         {
+            _logger.LogInformation("بدء حذف حالة طارئة: Id={Id}", request.id);
+
             // 1. Get entity
             var entity = await _repository.GetByIdAsync(request.id, cancellationToken);
 
             if (entity == null)
             {
                 return Result<bool>.Failure(
-                    "Emergency case not found",
+                    "الحالة الطارئة غير موجودة.",
                     ErrorType.NotFound);
             }
 
-            // 2. Business rule (optional but realistic)
+            // 2. Business rule
             if (entity.CollectedAmount.Amount > 0)
             {
                 return Result<bool>.Failure(
-                    "Cannot delete a case that already has donations",
+                    "لا يمكن حذف حالة لديها تبرعات بالفعل.",
                     ErrorType.Conflict);
             }
 
-            // 3. Soft delete (deactivate)
+            // 3. Soft delete
             entity.Deactivate();
 
-            // 4. Save changes
+            // 4. Save
             await _repository.UpdateAsync(entity, cancellationToken);
 
-            return Result<bool>.Success(true, "Deleted successfully");
+            _logger.LogInformation("تم حذف (تعطيل) الحالة الطارئة بنجاح: Id={Id}", entity.Id);
+
+            return Result<bool>.Success(true, "تم حذف الحالة الطارئة بنجاح.");
         }
     }
 }

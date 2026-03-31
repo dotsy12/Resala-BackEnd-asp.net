@@ -1,18 +1,12 @@
 ﻿using AutoMapper;
 using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Dtos.Sponsorship;
-using BackEnd.Application.Features.Sponsorship.Commands.Create;
 using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Application.ViewModles;
-using BackEnd.Domain.Exceptions;
 using BackEnd.Domain.ValueObjects;
 using BackEnd.Domain.Entities.Sponsorship;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace BackEnd.Application.Features.Sponsorship.Commands.Create
 {
@@ -20,16 +14,22 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.Create
        : IRequestHandler<CreateSponsorshipCommand, Result<SponsorshipViewModel>>
     {
         private readonly ISponsorshipRepository _repository;
+        private readonly ILogger<CreateSponsorshipCommandHandler> _logger;
 
-        public CreateSponsorshipCommandHandler(ISponsorshipRepository repository)
+        public CreateSponsorshipCommandHandler(
+            ISponsorshipRepository repository,
+            ILogger<CreateSponsorshipCommandHandler> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
         public async Task<Result<SponsorshipViewModel>> Handle(
             CreateSponsorshipCommand request,
             CancellationToken cancellationToken)
         {
+            _logger.LogInformation("بدء إنشاء برنامج كفالة جديد");
+
             var dto = request.Dto;
 
             Money? goal = null;
@@ -59,8 +59,12 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.Create
                 CreatedAt = created.CreatedOn
             };
 
-            return Result<SponsorshipViewModel>.Success(viewModel, "Sponsorship created successfully");
+            _logger.LogInformation("تم إنشاء برنامج الكفالة بنجاح: Id={Id}", created.Id);
+
+            return Result<SponsorshipViewModel>.Success(
+                viewModel,
+                "تم إنشاء برنامج الكفالة بنجاح."
+            );
         }
     }
-
 }

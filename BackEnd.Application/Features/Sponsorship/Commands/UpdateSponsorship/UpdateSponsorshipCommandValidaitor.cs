@@ -1,37 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
 {
-
-
-    namespace BackEnd.Application.Features.Sponsorship.Commands.Update
+    public class UpdateSponsorshipValidator : AbstractValidator<UpdateSponsorshipCommand>
     {
-        public class UpdateSponsorshipValidator : AbstractValidator<UpdateSponsorshipCommand>
+        public UpdateSponsorshipValidator()
         {
-            public UpdateSponsorshipValidator()
-            {
-                RuleFor(x => x.Id)
-                    .GreaterThan(0)
-                    .WithMessage("Id must be greater than 0");
+            RuleFor(x => x.Id)
+                .GreaterThan(0)
+                .WithMessage("معرف برنامج الكفالة غير صحيح.");
 
-                RuleFor(x => x.Dto.Name)
-                    .NotEmpty().WithMessage("Name is required")
-                    .MaximumLength(200).WithMessage("Name max length is 200");
+            RuleFor(x => x.Dto.Name)
+                .NotEmpty().WithMessage("اسم برنامج الكفالة مطلوب.")
+                .MaximumLength(200).WithMessage("اسم برنامج الكفالة لا يتجاوز 200 حرف.");
 
-                RuleFor(x => x.Dto.Description)
-                    .NotEmpty().WithMessage("Description is required");
+            RuleFor(x => x.Dto.Description)
+                .NotEmpty().WithMessage("الوصف مطلوب.");
 
-                RuleFor(x => x.Dto.TargetAmount)
-                    .GreaterThan(0)
-                    .WithMessage("TargetAmount must be greater than 0")
-                    .When(x => x.Dto.TargetAmount.HasValue);
-            }
+            RuleFor(x => x.Dto.TargetAmount)
+                .GreaterThan(0)
+                .When(x => x.Dto.TargetAmount.HasValue)
+                .WithMessage("المبلغ المستهدف يجب أن يكون أكبر من صفر.");
         }
     }
 }
