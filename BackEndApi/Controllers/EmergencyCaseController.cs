@@ -1,10 +1,10 @@
-﻿using BackEnd.Application.Dtos.EmergencyCase;
-using BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCase;
+﻿using BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCase;
 using BackEnd.Application.Features.EmergencyCase.Commands.DeleteEmergencyCase;
 using BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCase;
 using BackEnd.Application.Features.EmergencyCase.Queries.GetAllEmergenciesCasies;
 using BackEnd.Application.Features.EmergencyCase.Queries.GetEmergencyCaseById;
 using BackEnd.Application.ViewModles;
+using BackEnd.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -68,14 +68,19 @@ namespace BackEnd.API.Controllers
             OperationId = "EmergencyCases_Create",
             Tags = new[] { "EmergencyCases — Admin" }
         )]
-        public async Task<ActionResult<EmergencyCaseViewModel>> Create(
-            [FromBody] CreateEmergencyCaseDto dto,
-            CancellationToken cancellationToken)
+        public async Task<IActionResult> Create(
+    [FromBody] CreateEmergencyCaseRequest request,
+    CancellationToken ct)
         {
-            var command = new CreateEmergencyCaseCommand(dto);
-            var result = await _mediator.Send(command, cancellationToken);
+            var cmd = new CreateEmergencyCaseCommand(
+                Title: request.Title,
+                Description: request.Description,
+                UrgencyLevel: request.UrgencyLevel,
+                RequiredAmount: request.RequiredAmount,
+                ImageUrl: request.ImageUrl
+            );
 
-            return CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value);
+            return Ok(await _mediator.Send(cmd, ct));
         }
 
         // ═══════════════════════════════════════════════════
@@ -158,15 +163,21 @@ namespace BackEnd.API.Controllers
             OperationId = "EmergencyCases_Update",
             Tags = new[] { "EmergencyCases — Admin" }
         )]
-        public async Task<ActionResult<EmergencyCaseViewModel>> Update(
-            int id,
-            [FromBody] UpdateEmergencyCaseDto dto,
-            CancellationToken cancellationToken)
+        public async Task<IActionResult> Update(
+    [FromBody] UpdateEmergencyCaseRequest request,
+    CancellationToken ct)
         {
-            var command = new UpdateEmergencyCaseCommand(id, dto);
-            var result = await _mediator.Send(command, cancellationToken);
+            var cmd = new UpdateEmergencyCaseCommand(
+                Id: request.Id,
+                Title: request.Title,
+                Description: request.Description,
+                UrgencyLevel: request.UrgencyLevel,
+                RequiredAmount: request.RequiredAmount,
+                ImageUrl: request.ImageUrl,
+                IsActive: request.IsActive
+            );
 
-            return Ok(result);
+            return Ok(await _mediator.Send(cmd, ct));
         }
 
         // ═══════════════════════════════════════════════════
@@ -199,4 +210,22 @@ namespace BackEnd.API.Controllers
             return NoContent();
         }
     }
+
+    public record CreateEmergencyCaseRequest(
+        string Title,
+        string Description,
+        UrgencyLevel UrgencyLevel,
+        decimal RequiredAmount,
+        string? ImageUrl
+    );
+
+    public record UpdateEmergencyCaseRequest(
+        int Id,
+        string Title,
+        string Description,
+        UrgencyLevel UrgencyLevel,
+        decimal? RequiredAmount,
+        string? ImageUrl,
+        bool IsActive
+    );
 }

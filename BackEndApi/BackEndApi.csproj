@@ -31,4 +31,8 @@
 		<ProjectReference Include="..\BackEnd.Infrastructure\BackEnd.Infrastructure.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Logs\" />
+	</ItemGroup>
+
 </Project>

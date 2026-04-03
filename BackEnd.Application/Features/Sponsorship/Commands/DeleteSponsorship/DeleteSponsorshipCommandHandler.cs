@@ -2,42 +2,47 @@
 using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Domain.Exceptions;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace BackEnd.Application.Features.Sponsorship.Commands.DeleteSponsorship
 {
     public class DeleteSponsorshipCommandHandler
-    : IRequestHandler<DeleteSponsorshipCommand, Result<bool>>
+        : IRequestHandler<DeleteSponsorshipCommand, Result<bool>>
     {
         private readonly ISponsorshipRepository _repository;
+        private readonly ILogger<DeleteSponsorshipCommandHandler> _logger;
 
-        public DeleteSponsorshipCommandHandler(ISponsorshipRepository repository)
+        public DeleteSponsorshipCommandHandler(
+            ISponsorshipRepository repository,
+            ILogger<DeleteSponsorshipCommandHandler> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
         public async Task<Result<bool>> Handle(
             DeleteSponsorshipCommand request,
             CancellationToken cancellationToken)
         {
+            _logger.LogInformation("بدء حذف برنامج كفالة - Id={Id}", request.Id);
+
             var sponsorship = await _repository.GetByIdAsync(request.Id, cancellationToken);
 
             if (sponsorship is null)
             {
+                _logger.LogWarning("محاولة حذف برنامج كفالة غير موجود - Id={Id}", request.Id);
+
                 return Result<bool>.Failure(
-                    $"Sponsorship with id {request.Id} not found",
+                    "برنامج الكفالة غير موجود",
                     ErrorType.NotFound
                 );
             }
 
             await _repository.DeleteAsync(sponsorship, cancellationToken);
 
-            return Result<bool>.Success(true, "Sponsorship deleted successfully");
+            _logger.LogInformation("تم حذف برنامج الكفالة بنجاح - Id={Id}", request.Id);
+
+            return Result<bool>.Success(true, "تم حذف برنامج الكفالة بنجاح.");
         }
     }
-
- }
+}

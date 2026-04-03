@@ -18,10 +18,10 @@ namespace BackEnd.Application.ALLApplicationDependencies
                 cfg.RegisterServicesFromAssemblies(assembly);
             });
 
-            services.AddAutoMapper(cfg =>
-            {
-                cfg.AddMaps(assembly);
-            });
+            //services.AddAutoMapper(cfg =>
+            //{
+            //    cfg.AddMaps(assembly);
+            //});
 
             services.AddValidatorsFromAssembly(assembly);
 

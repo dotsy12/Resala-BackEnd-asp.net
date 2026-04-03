@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using BackEnd.Application.Common;
+﻿using BackEnd.Application.Common;
 using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Features.Login.Commands.Models;
 using BackEnd.Application.Features.RegisterUser.Commands.Dtos;

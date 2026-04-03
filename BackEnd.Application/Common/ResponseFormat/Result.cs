@@ -71,6 +71,8 @@
         UnprocessableEntity,
         InternalServerError,
         Unauthorized,
-        Forbidden
+        Forbidden,
+        ServerError
+
     }
 }
