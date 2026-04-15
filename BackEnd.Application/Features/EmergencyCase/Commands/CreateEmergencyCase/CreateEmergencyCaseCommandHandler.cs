@@ -1,10 +1,11 @@
 ﻿using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Application.ViewModles;
-using BackEnd.Domain.ValueObjects;
-using MediatR;
 using BackEnd.Domain.Entities;
 using BackEnd.Domain.Entities.EmergencyCase;
+using BackEnd.Domain.Exceptions;
+using BackEnd.Domain.ValueObjects;
+using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCase
@@ -24,48 +25,60 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCas
         }
 
         public async Task<Result<EmergencyCaseViewModel>> Handle(
-            CreateEmergencyCaseCommand request,
-            CancellationToken cancellationToken)
+       CreateEmergencyCaseCommand request,
+       CancellationToken cancellationToken)
         {
-            _logger.LogInformation("بدء إنشاء حالة طارئة جديدة");
-
-            var dto = request.Dto;
-
-            // ✅ Value Object
-            var requiredAmount = new Money(dto.RequiredAmount);
-
-            // ✅ Create Domain Entity
-            var entity = BackEnd.Domain.Entities.EmergencyCase.EmergencyCase.Create(
-                dto.Title,
-                dto.Description,
-                dto.UrgencyLevel,
-                requiredAmount,
-                dto.ImageUrl
-            );
-
-            var created = await _repository.CreateAsync(entity, cancellationToken);
-
-            // ✅ Mapping
-            var viewModel = new EmergencyCaseViewModel
+            try
             {
-                Id = created.Id,
-                Title = created.Title,
-                Description = created.Description,
-                ImageUrl = created.ImagePath ?? "",
-                UrgencyLevel = created.UrgencyLevel.ToString(),
-                RequiredAmount = created.RequiredAmount.Amount,
-                CollectedAmount = created.CollectedAmount.Amount,
-                IsActive = created.IsActive,
-                IsCompleted = created.IsCompleted,
-                CreatedAt = created.CreatedOn
-            };
+                _logger.LogInformation("بدء إنشاء حالة طارئة جديدة");
 
-            _logger.LogInformation("تم إنشاء الحالة الطارئة بنجاح: Id={Id}", created.Id);
+                // Value Object
+                var requiredAmount = new Money(request.RequiredAmount);
 
-            return Result<EmergencyCaseViewModel>.Success(
-                viewModel,
-                "تم إنشاء الحالة الطارئة بنجاح."
-            );
+                // Domain Entity
+                var entity = BackEnd.Domain.Entities.EmergencyCase.EmergencyCase.Create(
+                    request.Title,
+                    request.Description,
+                    request.UrgencyLevel,
+                    requiredAmount,
+                    request.ImageUrl
+                );
+
+                var created = await _repository.CreateAsync(entity, cancellationToken);
+
+                _logger.LogInformation("تم إنشاء الحالة الطارئة بنجاح. Id={Id}", created.Id);
+
+                // Mapping
+                var viewModel = new EmergencyCaseViewModel
+                {
+                    Image = created.ImagePath ?? "",
+                    Title = created.Title,
+                    Description = created.Description,
+                    TargetAmount = created.RequiredAmount.Amount,
+                    ReceivedAmount = created.CollectedAmount.Amount,
+                    CriticalPriority = created.UrgencyLevel == BackEnd.Domain.Enums.UrgencyLevel.Critical
+                };
+
+                return Result<EmergencyCaseViewModel>.Success(
+                    viewModel,
+                    "تم إنشاء الحالة الطارئة بنجاح."
+                );
+            }
+            catch (DomainException)
+            {
+                // سيُعالج في الـ Global Exception Handling Middleware
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "حدث خطأ غير متوقع أثناء إنشاء حالة طارئة");
+
+                return Result<EmergencyCaseViewModel>.Failure(
+                    "حدث خطأ غير متوقع أثناء إنشاء الحالة الطارئة",
+                    ErrorType.ServerError
+                );
+            }
         }
+
     }
 }

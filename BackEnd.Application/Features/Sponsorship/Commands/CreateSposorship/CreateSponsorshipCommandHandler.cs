@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using BackEnd.Application.Common.ResponseFormat;
+﻿using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Dtos.Sponsorship;
 using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Application.ViewModles;

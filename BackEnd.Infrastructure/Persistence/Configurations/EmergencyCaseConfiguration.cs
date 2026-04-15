@@ -16,20 +16,37 @@ namespace BackEnd.Infrastructure.Persistence.Configurations
             builder.OwnsOne(e => e.RequiredAmount, money =>
             {
                 money.Property(m => m.Amount)
-                     .HasColumnName("RequiredAmount");
+                     .HasColumnName("RequiredAmount")
+                     .HasPrecision(18, 2)
+                     .IsRequired();
 
                 money.Property(m => m.Currency)
-                     .HasColumnName("RequiredCurrency");
+                     .HasColumnName("RequiredCurrency")
+                     .HasMaxLength(10)
+                     .IsRequired();
             });
+
+            builder.Navigation(e => e.RequiredAmount)
+                   .IsRequired();
+
+            // -------------------------
 
             builder.OwnsOne(e => e.CollectedAmount, money =>
             {
                 money.Property(m => m.Amount)
-                     .HasColumnName("CollectedAmount");
+                     .HasColumnName("CollectedAmount")
+                     .HasPrecision(18, 2)
+                     .IsRequired();
 
                 money.Property(m => m.Currency)
-                     .HasColumnName("CollectedCurrency");
+                     .HasColumnName("CollectedCurrency")
+                     .HasMaxLength(10)
+                     .IsRequired();
             });
+
+            builder.Navigation(e => e.CollectedAmount)
+                   .IsRequired();
         }
     }
 }
+

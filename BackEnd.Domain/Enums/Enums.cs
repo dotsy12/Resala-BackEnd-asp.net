@@ -44,4 +44,5 @@ namespace BackEnd.Domain.Enums
         LowFunding = 6,
         SubscriptionCreated = 7
     }
+  
 }

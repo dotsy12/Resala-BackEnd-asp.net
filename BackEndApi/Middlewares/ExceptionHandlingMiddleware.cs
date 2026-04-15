@@ -1,6 +1,7 @@
-﻿using System.Net;
+﻿using BackEnd.Application.Common.ResponseFormat;
+using BackEnd.Domain.Exceptions;
+using System.Net;
 using System.Text.Json;
-using BackEnd.Application.Common.ResponseFormat;
 
 namespace BackEnd.Api.Middleware
 {
@@ -34,15 +35,37 @@ namespace BackEnd.Api.Middleware
             }
         }
 
-        private static async Task HandleExceptionAsync(
-            HttpContext context, Exception ex)
+        private async Task HandleExceptionAsync(HttpContext context, Exception ex)
         {
             context.Response.ContentType = "application/json";
-            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+
+            HttpStatusCode statusCode = HttpStatusCode.InternalServerError;
+            string message = "حدث خطأ داخلي في الخادم. يرجى المحاولة لاحقاً.";
+
+            if (ex is DomainException domainEx)
+            {
+                statusCode = HttpStatusCode.BadRequest;
+
+                message = domainEx.Message;
+
+                _logger.LogWarning(ex,
+                    "Domain error occurred: {Message}",
+                    domainEx.Message);
+            }
+            else
+            {
+                _logger.LogError(ex,
+                    "Unexpected error occurred in {Method} {Path}",
+                    context.Request.Method,
+                    context.Request.Path);
+            }
+
+            context.Response.StatusCode = (int)statusCode;
 
             var response = ApiResponse<object>.Fail(
-                "حدث خطأ داخلي في الخادم. يرجى المحاولة لاحقاً.",
-                HttpStatusCode.InternalServerError);
+                message,
+                statusCode
+            );
 
             var json = JsonSerializer.Serialize(response,
                 new JsonSerializerOptions

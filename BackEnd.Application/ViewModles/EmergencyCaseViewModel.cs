@@ -10,24 +10,13 @@ namespace BackEnd.Application.ViewModles
  
         public class EmergencyCaseViewModel
         {
-            public int Id { get; set; }
+        public string Image { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
 
-            public string Title { get; set; } = string.Empty;
+        public decimal TargetAmount { get; set; }
+        public decimal ReceivedAmount { get; set; }
 
-            public string Description { get; set; } = string.Empty;
-
-            public string ImageUrl { get; set; } = string.Empty;
-
-            public string UrgencyLevel { get; set; } = string.Empty;
-
-            public decimal RequiredAmount { get; set; }
-
-            public decimal CollectedAmount { get; set; }
-
-            public bool IsActive { get; set; }
-
-            public bool IsCompleted { get; set; }
-
-            public DateTime CreatedAt { get; set; }
-        }
+        public bool? CriticalPriority { get; set; }
+    }
     }

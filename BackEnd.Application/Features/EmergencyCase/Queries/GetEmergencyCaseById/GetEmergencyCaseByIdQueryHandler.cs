@@ -1,6 +1,7 @@
 ﻿using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Application.ViewModles;
+using BackEnd.Domain.Enums;
 using MediatR;
 using System;
 using System.Collections.Generic;
@@ -36,16 +37,12 @@ namespace BackEnd.Application.Features.EmergencyCase.Queries.GetEmergencyCaseByI
 
             var viewModel = new EmergencyCaseViewModel
             {
-                Id = entity.Id,
+                Image = entity.ImagePath ?? "",
                 Title = entity.Title,
                 Description = entity.Description,
-                ImageUrl = entity.ImagePath ?? "",
-                UrgencyLevel = entity.UrgencyLevel.ToString(),
-                RequiredAmount = entity.RequiredAmount.Amount,
-                CollectedAmount = entity.CollectedAmount.Amount,
-                IsActive = entity.IsActive,
-                IsCompleted = entity.IsCompleted,
-                CreatedAt = entity.CreatedOn
+                TargetAmount = entity.RequiredAmount.Amount,
+                ReceivedAmount = entity.CollectedAmount.Amount,
+                CriticalPriority = entity.UrgencyLevel == UrgencyLevel.Critical
             };
 
             return Result<EmergencyCaseViewModel>.Success(

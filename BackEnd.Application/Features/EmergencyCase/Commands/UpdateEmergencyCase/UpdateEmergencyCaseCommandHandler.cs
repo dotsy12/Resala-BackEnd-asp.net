@@ -1,6 +1,7 @@
 ﻿using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Application.ViewModles;
+using BackEnd.Domain.Enums;
 using BackEnd.Domain.ValueObjects;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -22,8 +23,8 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCas
         }
 
         public async Task<Result<EmergencyCaseViewModel>> Handle(
-            UpdateEmergencyCaseCommand request,
-            CancellationToken cancellationToken)
+      UpdateEmergencyCaseCommand request,
+      CancellationToken cancellationToken)
         {
             _logger.LogInformation("بدء تعديل حالة طارئة: Id={Id}", request.Id);
 
@@ -36,30 +37,28 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCas
                     ErrorType.NotFound);
             }
 
-            var dto = request.Dto;
-
             // ✅ Update basic info
-            entity.UpdateDetails(dto.Title, dto.Description, dto.ImageUrl);
+            entity.UpdateDetails(request.Title, request.Description, request.ImageUrl);
 
             // ✅ Update urgency
-            entity.SetUrgency(dto.UrgencyLevel);
+            entity.SetUrgency(request.UrgencyLevel);
 
             // ✅ Update RequiredAmount
-            if (dto.RequiredAmount.HasValue)
+            if (request.RequiredAmount.HasValue)
             {
-                if (dto.RequiredAmount.Value <= 0)
+                if (request.RequiredAmount.Value <= 0)
                 {
                     return Result<EmergencyCaseViewModel>.Failure(
                         "المبلغ المطلوب يجب أن يكون أكبر من صفر.",
                         ErrorType.BadRequest);
                 }
 
-                var money = new Money(dto.RequiredAmount.Value, "EGP");
+                var money = new Money(request.RequiredAmount.Value, "EGP");
                 entity.UpdateRequiredAmount(money);
             }
 
             // ✅ Activate / Deactivate
-            if (dto.IsActive)
+            if (request.IsActive)
                 entity.Activate();
             else
                 entity.Deactivate();
@@ -70,16 +69,12 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCas
             // ✅ Mapping
             var vm = new EmergencyCaseViewModel
             {
-                Id = entity.Id,
+                Image = entity.ImagePath ?? "",
                 Title = entity.Title,
                 Description = entity.Description,
-                ImageUrl = entity.ImagePath ?? string.Empty,
-                UrgencyLevel = entity.UrgencyLevel.ToString(),
-                RequiredAmount = entity.RequiredAmount.Amount,
-                CollectedAmount = entity.CollectedAmount.Amount,
-                IsActive = entity.IsActive,
-                IsCompleted = entity.IsCompleted,
-                CreatedAt = entity.CreatedOn
+                TargetAmount = entity.RequiredAmount.Amount,
+                ReceivedAmount = entity.CollectedAmount.Amount,
+                CriticalPriority = entity.UrgencyLevel == UrgencyLevel.Critical
             };
 
             _logger.LogInformation("تم تعديل الحالة الطارئة بنجاح: Id={Id}", entity.Id);
