@@ -1,4 +1,6 @@
 ﻿// Domain/Enums/Enums.cs
+using System.ComponentModel.DataAnnotations;
+
 namespace BackEnd.Domain.Enums
 {
     public enum UserRole { Admin = 1, Reception = 2, Donor = 3 }
@@ -6,7 +8,17 @@ namespace BackEnd.Domain.Enums
     public enum AccountStatus { Pending = 1, Active = 2, Locked = 3 }
 
     public enum SponsorshipStatus { Active = 1, Inactive = 2 }
-    public enum UrgencyLevel { Normal = 1, Urgent = 2, Critical = 3 }
+    public enum UrgencyLevel
+    {
+        [Display(Name = "عادية")]
+        Normal = 1,
+
+        [Display(Name = "حرجة")]
+        Urgent = 2,
+
+        [Display(Name = "حرجة جدا ")]
+        Critical = 3
+    }
 
     public enum PaymentCycle
     {

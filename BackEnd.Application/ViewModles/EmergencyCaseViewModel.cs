@@ -17,6 +17,6 @@ namespace BackEnd.Application.ViewModles
         public decimal TargetAmount { get; set; }
         public decimal ReceivedAmount { get; set; }
 
-        public bool? CriticalPriority { get; set; }
+        public string? UrgencyLevel { get; set; }
     }
     }

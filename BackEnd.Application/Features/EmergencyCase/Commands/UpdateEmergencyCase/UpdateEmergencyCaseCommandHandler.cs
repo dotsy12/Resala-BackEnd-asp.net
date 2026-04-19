@@ -1,4 +1,5 @@
-﻿using BackEnd.Application.Common.ResponseFormat;
+﻿using BackEnd.Application.Common.Extensions;
+using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Application.ViewModles;
 using BackEnd.Domain.Enums;
@@ -74,7 +75,7 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCas
                 Description = entity.Description,
                 TargetAmount = entity.RequiredAmount.Amount,
                 ReceivedAmount = entity.CollectedAmount.Amount,
-                CriticalPriority = entity.UrgencyLevel == UrgencyLevel.Critical
+                UrgencyLevel = entity.UrgencyLevel.GetDisplayName()
             };
 
             _logger.LogInformation("تم تعديل الحالة الطارئة بنجاح: Id={Id}", entity.Id);
