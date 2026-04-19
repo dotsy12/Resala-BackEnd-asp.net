@@ -1,4 +1,5 @@
-﻿using BackEnd.Application.Common.ResponseFormat;
+﻿using BackEnd.Application.Common.Extensions;
+using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Application.ViewModles;
 using BackEnd.Domain.Entities;
@@ -56,7 +57,7 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCas
                     Description = created.Description,
                     TargetAmount = created.RequiredAmount.Amount,
                     ReceivedAmount = created.CollectedAmount.Amount,
-                    CriticalPriority = created.UrgencyLevel == BackEnd.Domain.Enums.UrgencyLevel.Critical
+                    UrgencyLevel = created.UrgencyLevel.GetDisplayName()
                 };
 
                 return Result<EmergencyCaseViewModel>.Success(

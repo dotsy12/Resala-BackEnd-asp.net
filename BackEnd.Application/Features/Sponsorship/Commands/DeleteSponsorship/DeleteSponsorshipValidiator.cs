@@ -2,14 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using FluentValidation;
 using System.Threading.Tasks;
 
 namespace BackEnd.Application.Features.Sponsorship.Commands.DeleteSponsorship
 {
-    using FluentValidation;
 
-    namespace BackEnd.Application.Features.Sponsorship.Commands.Delete
-    {
+    
         public class DeleteSponsorshipValidator : AbstractValidator<DeleteSponsorshipCommand>
         {
             public DeleteSponsorshipValidator()
@@ -19,5 +18,5 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.DeleteSponsorship
                .WithMessage("معرف الكفالة يجب أن يكون أكبر من 0");
             }
         }
-    }
+    
 }
