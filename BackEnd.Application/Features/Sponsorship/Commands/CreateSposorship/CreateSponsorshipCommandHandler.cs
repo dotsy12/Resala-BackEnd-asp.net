@@ -59,13 +59,29 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.Create
                 imagePublicId = uploadResult.Value.PublicId;
             }
 
+            string? iconUrl = dto.Icon;
+            string? iconPublicId = null;
+            if (dto.IconFile is not null)
+            {
+                var uploadResult = await _fileUploadService.UploadAsync(
+                    dto.IconFile,
+                    "sponsorships/icons",
+                    UploadContentType.Image,
+                    cancellationToken);
+                if (uploadResult.IsSuccess)
+                {
+                    iconUrl = uploadResult.Value.Url;
+                    iconPublicId = uploadResult.Value.PublicId;
+                }
+            }
+
             var sponsorship = BackEnd.Domain.Entities.Sponsorship.Sponsorship.Create(
                 dto.Name,
                 dto.Description,
                 dto.Icon,
                 goal
             );
-            sponsorship.UpdateImages(imageUrl, imagePublicId, dto.Icon);
+            sponsorship.UpdateImages(imageUrl, imagePublicId, iconUrl, iconPublicId);
 
             var created = await _repository.CreateAsync(sponsorship, cancellationToken);
 
@@ -77,6 +93,7 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.Create
                 ImageUrl = created.ImagePath ?? "",
                 ImagePublicId = created.ImagePublicId,
                 Icon = created.IconPath ?? "",
+                IconPublicId = created.IconPublicId,
                 TargetAmount = created.FinancialGoal?.Amount,
                 CollectedAmount = created.TotalCollected.Amount,
                 IsActive = created.IsActive,

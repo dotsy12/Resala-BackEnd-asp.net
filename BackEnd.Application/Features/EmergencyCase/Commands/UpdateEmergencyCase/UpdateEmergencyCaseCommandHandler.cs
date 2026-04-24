@@ -97,6 +97,7 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCas
             // ✅ Mapping
             var vm = new EmergencyCaseViewModel
             {
+                Id = entity.Id,
                 Image = entity.ImagePath ?? "",
                 ImagePublicId = entity.ImagePublicId,
                 Title = entity.Title,

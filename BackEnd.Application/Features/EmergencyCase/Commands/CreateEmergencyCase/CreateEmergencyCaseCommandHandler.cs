@@ -80,6 +80,7 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCas
 
                 return Result<EmergencyCaseViewModel>.Success(new EmergencyCaseViewModel
                 {
+                    Id = created.Id,
                     Image = created.ImagePath ?? "",
                     ImagePublicId = created.ImagePublicId,
                     Title = created.Title,

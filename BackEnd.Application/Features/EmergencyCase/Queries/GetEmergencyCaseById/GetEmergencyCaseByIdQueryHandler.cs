@@ -38,6 +38,7 @@ namespace BackEnd.Application.Features.EmergencyCase.Queries.GetEmergencyCaseByI
 
             var viewModel = new EmergencyCaseViewModel
             {
+                Id = entity.Id,
                 Image = entity.ImagePath ?? "",
                 Title = entity.Title,
                 Description = entity.Description,

@@ -63,11 +63,40 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
                 imagePublicId = uploadResult.Value.PublicId;
             }
 
-            // ✅ Update images
-            sponsorship.UpdateImages(imageUrl, imagePublicId, dto.Icon);
+            string? iconUrl = dto.Icon;
+            string? iconPublicId = sponsorship.IconPublicId;
+            if (dto.IconFile is not null)
+            {
+                var uploadResult = await _fileUploadService.ReplaceAsync(
+                    dto.IconFile,
+                    sponsorship.IconPublicId,
+                    "sponsorships/icons",
+                    UploadContentType.Image,
+                    cancellationToken);
+                if (uploadResult.IsSuccess)
+                {
+                    iconUrl = uploadResult.Value.Url;
+                    iconPublicId = uploadResult.Value.PublicId;
+                }
+            }
+            else if (string.IsNullOrEmpty(dto.Icon) && !string.IsNullOrEmpty(sponsorship.IconPath) && !sponsorship.IconPath.StartsWith("http"))
+            {
+                // If Icon string is provided and it's not a URL, keep it as is (backward compatibility)
+                iconUrl = dto.Icon;
+            }
+            else if (!string.IsNullOrEmpty(dto.Icon))
+            {
+                 iconUrl = dto.Icon;
+            }
+            else
+            {
+                iconUrl = sponsorship.IconPath;
+            }
 
-           
-             sponsorship.UpdatePolicy(sponsorship.Policy);
+            // ✅ Update images
+            sponsorship.UpdateImages(imageUrl, imagePublicId, iconUrl, iconPublicId);
+            
+            sponsorship.UpdatePolicy(sponsorship.Policy);
 
             // ✅ Activate / Deactivate
             if (dto.IsActive)
@@ -85,6 +114,7 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
                 ImageUrl = sponsorship.ImagePath ?? "",
                 ImagePublicId = sponsorship.ImagePublicId,
                 Icon = sponsorship.IconPath ?? "",
+                IconPublicId = sponsorship.IconPublicId,
                 TargetAmount = sponsorship.FinancialGoal?.Amount,
                 CollectedAmount = sponsorship.TotalCollected.Amount,
                 IsActive = sponsorship.IsActive,

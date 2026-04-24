@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Persistence.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BackEnd.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260424122930_FixColumns")]
+    partial class FixColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -42,8 +45,8 @@ namespace BackEnd.Infrastructure.Migrations
                         .HasColumnType("nvarchar(1024)");
 
                     b.Property<string>("ImagePublicId")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -169,7 +172,7 @@ namespace BackEnd.Infrastructure.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@RESALA.ORG",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAELqDQPIsMG1aSEeEEA3sW/bFEx+ewaV4DoK1wSIXMiRjHffiSWdXXHIHd0BGe29ioQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEMvaY0lpQvsYMGBevtLfSCYRl4avXI2emT2y4OxFuW7BtW+2GLNanM6LGnTsVjDG/g==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "admin-security",
                             TwoFactorEnabled = false,
@@ -561,8 +564,8 @@ namespace BackEnd.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("ReceiptImagePublicId")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("ReceiptImageUrl")
                         .HasMaxLength(1024)
@@ -623,8 +626,8 @@ namespace BackEnd.Infrastructure.Migrations
                         .HasColumnType("nvarchar(1024)");
 
                     b.Property<string>("ImagePublicId")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");

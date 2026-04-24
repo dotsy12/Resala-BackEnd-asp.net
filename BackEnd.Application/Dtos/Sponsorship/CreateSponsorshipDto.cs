@@ -13,6 +13,7 @@ namespace BackEnd.Application.Dtos.Sponsorship
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string Icon { get; set; } = string.Empty;
+        public IFormFile? IconFile { get; set; }
         public decimal? TargetAmount { get; set; }
         public IFormFile? ImageFile { get; set; }
     }

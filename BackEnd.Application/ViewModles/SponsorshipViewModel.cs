@@ -14,6 +14,7 @@ namespace BackEnd.Application.ViewModles
         public string ImageUrl { get; set; } = string.Empty;
         public string? ImagePublicId { get; set; }
         public string Icon { get; set; } = string.Empty;
+        public string? IconPublicId { get; set; }
         public decimal? TargetAmount { get; set; }
         public decimal CollectedAmount { get; set; }
         public bool IsActive { get; set; }

@@ -30,6 +30,7 @@ namespace BackEnd.Application.Features.EmergencyCase.Queries.GetAllEmergenciesCa
 
             var resultList = entities.Select(entity => new EmergencyCaseViewModel
             {
+                Id = entity.Id,
                 Image = entity.ImagePath ?? "",
                 Title = entity.Title,
                 Description = entity.Description,

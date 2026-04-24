@@ -44,13 +44,16 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.DeleteSponsorship
 
             if (!string.IsNullOrWhiteSpace(sponsorship.ImagePublicId))
             {
-                var deleteFileResult = await _fileUploadService.DeleteAsync(
+                await _fileUploadService.DeleteAsync(
                     sponsorship.ImagePublicId,
                     cancellationToken);
-                if (!deleteFileResult.IsSuccess)
-                {
-                    return Result<bool>.Failure(deleteFileResult.Message, deleteFileResult.ErrorType);
-                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(sponsorship.IconPublicId))
+            {
+                await _fileUploadService.DeleteAsync(
+                    sponsorship.IconPublicId,
+                    cancellationToken);
             }
 
             await _repository.DeleteAsync(sponsorship, cancellationToken);

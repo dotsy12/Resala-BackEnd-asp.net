@@ -33,6 +33,12 @@ namespace BackEnd.Application.Features.Sponsorship.Queries.GetAll
                 Id = s.Id,
                 Name = s.Name,
                 Description = s.Description,
+                ImageUrl = s.ImagePath ?? "",
+                ImagePublicId = s.ImagePublicId,
+                Icon = s.IconPath ?? "",
+                IconPublicId = s.IconPublicId,
+                TargetAmount = s.FinancialGoal?.Amount,
+                CollectedAmount = s.TotalCollected.Amount,
                 IsActive = s.IsActive,
                 CreatedAt = s.CreatedOn
             });

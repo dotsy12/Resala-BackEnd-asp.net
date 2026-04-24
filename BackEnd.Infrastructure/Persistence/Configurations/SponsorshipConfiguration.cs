@@ -12,7 +12,8 @@ namespace BackEnd.Infrastructure.Persistence.Configurations
             builder.HasKey(x => x.Id);
             builder.Property(x => x.ImagePath).HasMaxLength(1024);
             builder.Property(x => x.ImagePublicId).HasMaxLength(256);
-            builder.Property(x => x.IconPath).HasMaxLength(256);
+            builder.Property(x => x.IconPath).HasMaxLength(500);
+            builder.Property(x => x.IconPublicId).HasMaxLength(256);
 
             builder.OwnsOne(x => x.FinancialGoal, m =>
             {

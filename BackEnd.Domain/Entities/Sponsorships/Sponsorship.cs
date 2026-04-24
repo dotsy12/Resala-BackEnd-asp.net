@@ -14,6 +14,7 @@ namespace BackEnd.Domain.Entities.Sponsorship
         public string? ImagePath { get; private set; }
         public string? ImagePublicId { get; private set; }
         public string? IconPath { get; private set; }
+        public string? IconPublicId { get; private set; }
         public string Category { get; private set; } = null!;
         public SponsorshipStatus Status { get; private set; }
         public UrgencyLevel UrgencyLevel { get; private set; }
@@ -69,11 +70,12 @@ namespace BackEnd.Domain.Entities.Sponsorship
             UpdatedOn = DateTime.UtcNow;
         }
 
-        public void UpdateImages(string? imagePath, string? imagePublicId, string? iconPath)
+        public void UpdateImages(string? imagePath, string? imagePublicId, string? iconPath, string? iconPublicId = null)
         {
             ImagePath = imagePath;
             ImagePublicId = imagePublicId;
             IconPath = iconPath;
+            IconPublicId = iconPublicId;
             UpdatedOn = DateTime.UtcNow;
         }
 

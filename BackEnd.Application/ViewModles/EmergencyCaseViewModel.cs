@@ -10,6 +10,7 @@ namespace BackEnd.Application.ViewModles
  
         public class EmergencyCaseViewModel
         {
+        public int Id { get; set; }
         public string Image { get; set; } = string.Empty;
         public string? ImagePublicId { get; set; }
         public string Title { get; set; } = string.Empty;
