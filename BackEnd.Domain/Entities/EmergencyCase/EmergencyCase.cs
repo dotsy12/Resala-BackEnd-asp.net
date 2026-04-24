@@ -1,4 +1,4 @@
-﻿using BackEnd.Domain.Common;
+using BackEnd.Domain.Common;
 using BackEnd.Domain.Enums;
 using BackEnd.Domain.Interfaces;
 using BackEnd.Domain.ValueObjects;
@@ -15,6 +15,7 @@ namespace BackEnd.Domain.Entities.EmergencyCase
         public string Title { get; private set; } = null!;
         public string Description { get; private set; } = null!;
         public string? ImagePath { get; private set; }
+        public string? ImagePublicId { get; private set; }
 
         public UrgencyLevel UrgencyLevel { get; private set; }
 
@@ -31,7 +32,8 @@ namespace BackEnd.Domain.Entities.EmergencyCase
             string description,
             UrgencyLevel urgencyLevel,
             Money requiredAmount,
-            string? imagePath = null)
+            string? imagePath = null,
+            string? imagePublicId = null)
         {
             if (string.IsNullOrWhiteSpace(title))
                 throw new ArgumentException("Title is required.");
@@ -47,6 +49,7 @@ namespace BackEnd.Domain.Entities.EmergencyCase
                 RequiredAmount = requiredAmount,
                 CollectedAmount = Money.Zero(),
                 ImagePath = imagePath,
+                ImagePublicId = imagePublicId,
                 IsActive = true,
                 CreatedOn = DateTime.UtcNow
             };
@@ -54,7 +57,7 @@ namespace BackEnd.Domain.Entities.EmergencyCase
 
         // ✅ Business Methods
 
-        public void UpdateDetails(string title, string description, string? imagePath)
+        public void UpdateDetails(string title, string description, string? imagePath, string? imagePublicId)
         {
             Title = string.IsNullOrWhiteSpace(title)
                 ? throw new ArgumentException("Title is required.")
@@ -65,6 +68,7 @@ namespace BackEnd.Domain.Entities.EmergencyCase
                 : description.Trim();
 
             ImagePath = imagePath;
+            ImagePublicId = imagePublicId;
             UpdatedOn = DateTime.UtcNow;
         }
 

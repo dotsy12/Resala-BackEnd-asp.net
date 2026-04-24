@@ -1,0 +1,110 @@
+You are an AI Senior .NET Architect working inside a Clean Architecture ASP.NET Core project.
+
+====================================================
+CONTEXT
+====================================================
+
+The project already contains:
+- Sponsorships module
+- Emergency Cases module
+- Subscriptions & Payments module
+- Cloudinary file upload infrastructure (IFileService / CloudinaryFileUploadService)
+
+However, file upload integration is NOT correctly connected to business features.
+
+====================================================
+GOAL
+====================================================
+
+You must REVIEW and FIX all file upload usage inside the following modules:
+
+1. Sponsorships (Kafalat)
+2. Emergency Cases
+3. Payment System (Vodafone Cash / InstaPay)
+
+====================================================
+MAIN TASK
+====================================================
+
+## 1. ANALYZE FIRST
+Scan the codebase and identify:
+- Where images/files are needed but not properly integrated
+- Any usage of standalone upload endpoints (if exists)
+- Any missing ImageUrl / ReceiptUrl mappings in entities or DTOs
+
+---
+
+## 2. SPONSORSHIP MODULE (KAFALAT)
+
+Ensure:
+- Sponsorship creation/update supports image upload
+- Image upload is handled inside the Command Handler
+- No external upload API is used
+- Store:
+  - ImageUrl
+  - ImagePublicId
+
+---
+
+## 3. EMERGENCY CASES MODULE
+
+Ensure:
+- Emergency Case supports image/document upload
+- Upload is handled inside Create/Update handler
+- Support:
+  - jpg, jpeg, png, pdf
+- Store:
+  - ImageUrl
+  - ImagePublicId
+
+---
+
+## 4. PAYMENT MODULE (VODAFONE CASH / INSTAPAY)
+
+Ensure:
+- Payment submission supports receipt image upload
+- Upload must happen inside SubmitPaymentCommandHandler
+- Store:
+  - ReceiptImageUrl
+  - ReceiptImagePublicId
+
+---
+
+## 5. CRITICAL RULES
+
+- DO NOT create new UploadController or upload endpoints
+- DO NOT use standalone upload API flow
+- ALL uploads must happen inside existing business Command Handlers
+- Use existing IFileService / CloudinaryFileUploadService only
+- Follow Clean Architecture strictly
+- Controllers must NOT handle file logic
+
+---
+
+## 6. VALIDATION
+
+Ensure FluentValidation exists for:
+- File type (jpg, jpeg, png, pdf where needed)
+- Max size 5MB
+- Reject unsafe files
+
+---
+
+## 7. OUTPUT REQUIRED
+
+After finishing, provide:
+
+1. What you found in current implementation
+2. What was broken or missing
+3. What you fixed
+4. Which files were modified
+5. Final recommended architecture flow
+
+---
+
+## FINAL ARCHITECTURE TARGET
+
+Frontend → API (with file) → Command Handler → IFileService → Cloudinary → DB Save
+
+NOT:
+Frontend → Upload API → then Business API

@@ -1,5 +1,6 @@
-﻿using BackEnd.Application.Common.ResponseFormat;
+using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Interfaces.Repositories;
+using BackEnd.Application.Interfaces.Services;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -9,13 +10,16 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.DeleteEmergencyCas
         : IRequestHandler<DeleteEmergencyCaseCommand, Result<bool>>
     {
         private readonly IEmergencyCaseRepository _repository;
+        private readonly IFileUploadService _fileUploadService;
         private readonly ILogger<DeleteEmergencyCaseCommandHandler> _logger;
 
         public DeleteEmergencyCaseCommandHandler(
             IEmergencyCaseRepository repository,
+            IFileUploadService fileUploadService,
             ILogger<DeleteEmergencyCaseCommandHandler> logger)
         {
             _repository = repository;
+            _fileUploadService = fileUploadService;
             _logger = logger;
         }
 
@@ -41,6 +45,17 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.DeleteEmergencyCas
                 return Result<bool>.Failure(
                     "لا يمكن حذف حالة لديها تبرعات بالفعل.",
                     ErrorType.Conflict);
+            }
+
+            if (!string.IsNullOrWhiteSpace(entity.ImagePublicId))
+            {
+                var deleteFileResult = await _fileUploadService.DeleteAsync(
+                    entity.ImagePublicId,
+                    cancellationToken);
+                if (!deleteFileResult.IsSuccess)
+                {
+                    return Result<bool>.Failure(deleteFileResult.Message, deleteFileResult.ErrorType);
+                }
             }
 
             // 3. Soft delete

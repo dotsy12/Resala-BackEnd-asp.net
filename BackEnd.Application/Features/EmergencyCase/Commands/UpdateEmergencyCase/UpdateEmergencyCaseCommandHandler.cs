@@ -1,6 +1,8 @@
-﻿using BackEnd.Application.Common.Extensions;
+using BackEnd.Application.Common.Extensions;
+using BackEnd.Application.Common.Files;
 using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Interfaces.Repositories;
+using BackEnd.Application.Interfaces.Services;
 using BackEnd.Application.ViewModles;
 using BackEnd.Domain.Enums;
 using BackEnd.Domain.ValueObjects;
@@ -13,13 +15,16 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCas
       : IRequestHandler<UpdateEmergencyCaseCommand, Result<EmergencyCaseViewModel>>
     {
         private readonly IEmergencyCaseRepository _repository;
+        private readonly IFileUploadService _fileUploadService;
         private readonly ILogger<UpdateEmergencyCaseCommandHandler> _logger;
 
         public UpdateEmergencyCaseCommandHandler(
             IEmergencyCaseRepository repository,
+            IFileUploadService fileUploadService,
             ILogger<UpdateEmergencyCaseCommandHandler> logger)
         {
             _repository = repository;
+            _fileUploadService = fileUploadService;
             _logger = logger;
         }
 
@@ -38,8 +43,30 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCas
                     ErrorType.NotFound);
             }
 
+            var imageUrl = entity.ImagePath;
+            var imagePublicId = entity.ImagePublicId;
+            if (request.Attachment is not null)
+            {
+                var expectedType = request.Attachment.ContentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase)
+                    ? UploadContentType.Document
+                    : UploadContentType.Image;
+                var uploadResult = await _fileUploadService.ReplaceAsync(
+                    request.Attachment,
+                    entity.ImagePublicId,
+                    "emergency-cases",
+                    expectedType,
+                    cancellationToken);
+                if (!uploadResult.IsSuccess)
+                {
+                    return Result<EmergencyCaseViewModel>.Failure(uploadResult.Message, ErrorType.BadRequest);
+                }
+
+                imageUrl = uploadResult.Value.Url;
+                imagePublicId = uploadResult.Value.PublicId;
+            }
+
             // ✅ Update basic info
-            entity.UpdateDetails(request.Title, request.Description, request.ImageUrl);
+            entity.UpdateDetails(request.Title, request.Description, imageUrl, imagePublicId);
 
             // ✅ Update urgency
             entity.SetUrgency(request.UrgencyLevel);
@@ -71,6 +98,7 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCas
             var vm = new EmergencyCaseViewModel
             {
                 Image = entity.ImagePath ?? "",
+                ImagePublicId = entity.ImagePublicId,
                 Title = entity.Title,
                 Description = entity.Description,
                 TargetAmount = entity.RequiredAmount.Amount,

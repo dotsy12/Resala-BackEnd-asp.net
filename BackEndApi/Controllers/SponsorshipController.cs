@@ -1,4 +1,4 @@
-﻿using BackEnd.Application.Dtos.Sponsorship;
+using BackEnd.Application.Dtos.Sponsorship;
 using BackEnd.Application.Features.Sponsorship.Commands.Create;
 using BackEnd.Application.Features.Sponsorship.Commands.DeleteSponsorship;
 using BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship;
@@ -65,6 +65,7 @@ namespace BackEndApi.Controllers
         /// <response code="403">الدور غير مصرّح</response>
         [HttpPost]
         [Authorize(Roles = "Admin")]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(SponsorshipViewModel), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -76,7 +77,7 @@ namespace BackEndApi.Controllers
             Tags = new[] { "Sponsorships — Admin" }
         )]
         public async Task<ActionResult<SponsorshipViewModel>> Create(
-            [FromBody] CreateSponsorshipDto dto,
+            [FromForm] CreateSponsorshipDto dto,
             CancellationToken cancellationToken)
         {
             var command = new CreateSponsorshipCommand(dto);
@@ -207,6 +208,7 @@ namespace BackEndApi.Controllers
         /// <response code="403">الدور غير مصرّح</response>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(SponsorshipViewModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -220,7 +222,7 @@ namespace BackEndApi.Controllers
         )]
         public async Task<ActionResult<SponsorshipViewModel>> Update(
             int id,
-            [FromBody] UpdateSponsorshipDto dto,
+            [FromForm] UpdateSponsorshipDto dto,
             CancellationToken cancellationToken)
         {
             var command = new UpdateSponsorshipCommand(id, dto);

@@ -1,4 +1,4 @@
-﻿using BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCase;
+using BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCase;
 using BackEnd.Application.Features.EmergencyCase.Commands.DeleteEmergencyCase;
 using BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCase;
 using BackEnd.Application.Features.EmergencyCase.Queries.GetAllEmergenciesCasies;
@@ -7,6 +7,7 @@ using BackEnd.Application.ViewModles;
 using BackEnd.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -58,6 +59,7 @@ namespace BackEnd.API.Controllers
         /// </remarks>
         [HttpPost]
         [Authorize(Roles = "Admin")]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(EmergencyCaseViewModel), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -69,7 +71,7 @@ namespace BackEnd.API.Controllers
             Tags = new[] { "EmergencyCases — Admin" }
         )]
         public async Task<IActionResult> Create(
-    [FromBody] CreateEmergencyCaseRequest request,
+    [FromForm] CreateEmergencyCaseRequest request,
     CancellationToken ct)
         {
             var cmd = new CreateEmergencyCaseCommand(
@@ -77,7 +79,7 @@ namespace BackEnd.API.Controllers
                 Description: request.Description,
                 UrgencyLevel: request.UrgencyLevel,
                 RequiredAmount: request.RequiredAmount,
-                ImageUrl: request.ImageUrl
+                Attachment: request.Attachment
             );
 
             return Ok(await _mediator.Send(cmd, ct));
@@ -152,6 +154,7 @@ namespace BackEnd.API.Controllers
         /// </remarks>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(EmergencyCaseViewModel), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -164,16 +167,17 @@ namespace BackEnd.API.Controllers
             Tags = new[] { "EmergencyCases — Admin" }
         )]
         public async Task<IActionResult> Update(
-    [FromBody] UpdateEmergencyCaseRequest request,
+    int id,
+    [FromForm] UpdateEmergencyCaseRequest request,
     CancellationToken ct)
         {
             var cmd = new UpdateEmergencyCaseCommand(
-                Id: request.Id,
+                Id: id,
                 Title: request.Title,
                 Description: request.Description,
                 UrgencyLevel: request.UrgencyLevel,
                 RequiredAmount: request.RequiredAmount,
-                ImageUrl: request.ImageUrl,
+                Attachment: request.Attachment,
                 IsActive: request.IsActive
             );
 
@@ -216,16 +220,15 @@ namespace BackEnd.API.Controllers
         string Description,
         UrgencyLevel UrgencyLevel,
         decimal RequiredAmount,
-        string? ImageUrl
+        IFormFile? Attachment
     );
 
     public record UpdateEmergencyCaseRequest(
-        int Id,
         string Title,
         string Description,
         UrgencyLevel UrgencyLevel,
         decimal? RequiredAmount,
-        string? ImageUrl,
+        IFormFile? Attachment,
         bool IsActive
     );
 }

@@ -1,6 +1,8 @@
-﻿using BackEnd.Application.Common.ResponseFormat;
+using BackEnd.Application.Common.ResponseFormat;
+using BackEnd.Application.Common.Files;
 using BackEnd.Application.Dtos.Sponsorship;
 using BackEnd.Application.Interfaces.Repositories;
+using BackEnd.Application.Interfaces.Services;
 using BackEnd.Application.ViewModles;
 using BackEnd.Domain.ValueObjects;
 using BackEnd.Domain.Entities.Sponsorship;
@@ -13,13 +15,16 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.Create
        : IRequestHandler<CreateSponsorshipCommand, Result<SponsorshipViewModel>>
     {
         private readonly ISponsorshipRepository _repository;
+        private readonly IFileUploadService _fileUploadService;
         private readonly ILogger<CreateSponsorshipCommandHandler> _logger;
 
         public CreateSponsorshipCommandHandler(
             ISponsorshipRepository repository,
+            IFileUploadService fileUploadService,
             ILogger<CreateSponsorshipCommandHandler> logger)
         {
             _repository = repository;
+            _fileUploadService = fileUploadService;
             _logger = logger;
         }
 
@@ -36,12 +41,31 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.Create
             if (dto.TargetAmount.HasValue)
                 goal = new Money(dto.TargetAmount.Value);
 
+            string? imageUrl = null;
+            string? imagePublicId = null;
+            if (dto.ImageFile is not null)
+            {
+                var uploadResult = await _fileUploadService.UploadAsync(
+                    dto.ImageFile,
+                    "sponsorships",
+                    UploadContentType.Image,
+                    cancellationToken);
+                if (!uploadResult.IsSuccess)
+                {
+                    return Result<SponsorshipViewModel>.Failure(uploadResult.Message, ErrorType.BadRequest);
+                }
+
+                imageUrl = uploadResult.Value.Url;
+                imagePublicId = uploadResult.Value.PublicId;
+            }
+
             var sponsorship = BackEnd.Domain.Entities.Sponsorship.Sponsorship.Create(
                 dto.Name,
                 dto.Description,
                 dto.Icon,
                 goal
             );
+            sponsorship.UpdateImages(imageUrl, imagePublicId, dto.Icon);
 
             var created = await _repository.CreateAsync(sponsorship, cancellationToken);
 
@@ -51,6 +75,7 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.Create
                 Name = created.Name,
                 Description = created.Description,
                 ImageUrl = created.ImagePath ?? "",
+                ImagePublicId = created.ImagePublicId,
                 Icon = created.IconPath ?? "",
                 TargetAmount = created.FinancialGoal?.Amount,
                 CollectedAmount = created.TotalCollected.Amount,

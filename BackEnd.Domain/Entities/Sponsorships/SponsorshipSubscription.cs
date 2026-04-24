@@ -47,16 +47,41 @@ namespace BackEnd.Domain.Entities.Sponsorship
                 CreatedOn = startDate
             };
 
-            sub.AddDomainEvent(
-                new SubscriptionCreatedEvent(0, donorId, sponsorshipId));
+            sub.AddDomainEvent(new SubscriptionCreatedEvent(0, donorId, sponsorshipId));
             return sub;
         }
 
+        /// <summary>تحديث قيمة الاشتراك</summary>
+        public void UpdateAmount(Money newAmount)
+        {
+            if (Status is SubscriptionStatus.Cancelled or SubscriptionStatus.Expired)
+                throw new InvalidSubscriptionOperationException(
+                    "لا يمكن تعديل اشتراك ملغي أو منتهي.");
+            if (newAmount.Amount <= 0)
+                throw new InvalidMoneyAmountException(newAmount.Amount);
+
+            Amount = newAmount;
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        /// <summary>تحديث دورة الدفع</summary>
+        public void UpdatePaymentCycle(PaymentCycle newCycle)
+        {
+            if (Status is SubscriptionStatus.Cancelled or SubscriptionStatus.Expired)
+                throw new InvalidSubscriptionOperationException(
+                    "لا يمكن تعديل اشتراك ملغي أو منتهي.");
+
+            PaymentCycle = newCycle;
+            // إعادة حساب الدفعة القادمة من تاريخ اليوم
+            NextPaymentDate = DateTime.UtcNow.AddMonths((int)newCycle);
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        /// <summary>إلغاء الاشتراك</summary>
         public void Cancel(string? reason = null)
         {
             if (Status == SubscriptionStatus.Cancelled)
-                throw new InvalidSubscriptionOperationException(
-                    "Subscription is already cancelled.");
+                throw new InvalidSubscriptionOperationException("الاشتراك ملغي بالفعل.");
 
             Status = SubscriptionStatus.Cancelled;
             CancelledAt = DateTime.UtcNow;
@@ -66,17 +91,19 @@ namespace BackEnd.Domain.Entities.Sponsorship
             AddDomainEvent(new SubscriptionCancelledEvent(Id, DonorId, reason));
         }
 
+        /// <summary>تعليق الاشتراك (بسبب تأخر الدفع)</summary>
         public void Suspend()
         {
             if (Status != SubscriptionStatus.Active)
                 throw new InvalidSubscriptionOperationException(
-                    "Only active subscriptions can be suspended.");
+                    "يمكن تعليق الاشتراكات النشطة فقط.");
 
             Status = SubscriptionStatus.Suspended;
             UpdatedOn = DateTime.UtcNow;
             AddDomainEvent(new LatePaymentDetectedEvent(Id, DonorId, NextPaymentDate));
         }
 
+        /// <summary>تقديم تاريخ الدفعة القادمة بعد التأكيد</summary>
         public void AdvancePaymentDate()
         {
             NextPaymentDate = NextPaymentDate.AddMonths((int)PaymentCycle);

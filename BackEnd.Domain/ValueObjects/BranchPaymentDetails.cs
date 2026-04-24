@@ -1,42 +1,42 @@
-﻿// Domain/ValueObjects/ValueObjects.cs
-using BackEnd.Domain.Exceptions;
+﻿using BackEnd.Domain.Exceptions;
 
 namespace BackEnd.Domain.ValueObjects
 {
-    // ── BranchPaymentDetails ─────────────────────────────────
+    /// <summary>
+    /// تفاصيل الدفع في الفرع — لا يحتاج عنوان لأن المتبرع يأتي للمقر
+    /// </summary>
     public sealed class BranchPaymentDetails : IEquatable<BranchPaymentDetails>
     {
         public string DonorName { get; private set; } = null!;
-        public string Address { get; private set; } = null!;
         public string ContactNumber { get; private set; } = null!;
         public DateTime ScheduledDate { get; private set; }
+        public int SlotId { get; private set; }
 
         private BranchPaymentDetails() { }
 
         public BranchPaymentDetails(
-            string donorName, string address,
-            string contactNumber, DateTime scheduledDate)
+            string donorName, string contactNumber,
+            DateTime scheduledDate, int slotId)
         {
             if (string.IsNullOrWhiteSpace(donorName))
-                throw new ArgumentException("Donor name is required.");
-            if (string.IsNullOrWhiteSpace(address))
-                throw new ArgumentException("Address is required.");
+                throw new ArgumentException("اسم المتبرع مطلوب.");
+            if (string.IsNullOrWhiteSpace(contactNumber))
+                throw new ArgumentException("رقم الاتصال مطلوب.");
             if (scheduledDate.ToUniversalTime() <= DateTime.UtcNow)
-                throw new InvalidPaymentRequestException(
-                    "Scheduled date must be in the future.");
+                throw new InvalidPaymentRequestException("تاريخ الموعد يجب أن يكون في المستقبل.");
+            if (slotId <= 0)
+                throw new ArgumentException("معرف الـ Slot غير صحيح.");
 
             DonorName = donorName.Trim();
-            Address = address.Trim();
             ContactNumber = contactNumber.Trim();
             ScheduledDate = scheduledDate.ToUniversalTime();
+            SlotId = slotId;
         }
 
         public bool Equals(BranchPaymentDetails? other) =>
-            other is not null &&
-            DonorName == other.DonorName && ScheduledDate == other.ScheduledDate;
+            other is not null && SlotId == other.SlotId && DonorName == other.DonorName;
 
         public override bool Equals(object? obj) => Equals(obj as BranchPaymentDetails);
-        public override int GetHashCode() =>
-            HashCode.Combine(DonorName, ScheduledDate);
+        public override int GetHashCode() => HashCode.Combine(SlotId, DonorName);
     }
 }

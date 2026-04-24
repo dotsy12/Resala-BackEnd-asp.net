@@ -56,5 +56,19 @@ namespace BackEnd.Domain.Enums
         LowFunding = 6,
         SubscriptionCreated = 7
     }
-  
+    public enum PickupRequestStatus
+    {
+        Pending = 1,
+        Assigned = 2,
+        Completed = 3,
+        Cancelled = 4
+    }
+
+    public enum BranchAppointmentStatus
+    {
+        Pending = 1,
+        Confirmed = 2,
+        Completed = 3,
+        Cancelled = 4
+    }
 }

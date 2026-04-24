@@ -9,6 +9,7 @@ namespace BackEnd.Application.Common
     public class ApplicationRoles
     {
         public const string Admin = "Admin";
-        public const string Employee = "Employee";
+        public const string Reception = "Reception";   // ✅ كان "Employee" — خطأ
+        public const string Donor = "Donor";
     }
 }

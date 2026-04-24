@@ -1,4 +1,4 @@
-﻿using BackEnd.Domain.Entities.Sponsorship;
+using BackEnd.Domain.Entities.Sponsorship;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -10,6 +10,9 @@ namespace BackEnd.Infrastructure.Persistence.Configurations
         {
             builder.ToTable("Sponsorships");
             builder.HasKey(x => x.Id);
+            builder.Property(x => x.ImagePath).HasMaxLength(1024);
+            builder.Property(x => x.ImagePublicId).HasMaxLength(256);
+            builder.Property(x => x.IconPath).HasMaxLength(256);
 
             builder.OwnsOne(x => x.FinancialGoal, m =>
             {

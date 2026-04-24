@@ -3,16 +3,19 @@ using BackEnd.Domain.Entities.Payment;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
 
-public class InKindDonationConfiguration : IEntityTypeConfiguration<InKindDonation>
+namespace BackEnd.Infrastructure.Persistence.Configurations   // ✅ أُضيف namespace
 {
-    public void Configure(EntityTypeBuilder<InKindDonation> builder)
+    public class InKindDonationConfiguration : IEntityTypeConfiguration<InKindDonation>
     {
-        builder.ToTable("InKindDonations");
+        public void Configure(EntityTypeBuilder<InKindDonation> builder)
+        {
+            builder.ToTable("InKindDonations");
 
-        // اربط الـ Navigation بالـ FK الصح
-        builder.HasOne(x => x.RecordedBy)
-               .WithMany()
-               .HasForeignKey(x => x.RecordedByStaffId)
-               .OnDelete(DeleteBehavior.Restrict);
+            // اربط الـ Navigation بالـ FK الصح
+            builder.HasOne(x => x.RecordedBy)
+                   .WithMany()
+                   .HasForeignKey(x => x.RecordedByStaffId)
+                   .OnDelete(DeleteBehavior.Restrict);
+        }
     }
 }

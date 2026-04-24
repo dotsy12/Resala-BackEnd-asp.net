@@ -1,4 +1,4 @@
-﻿using BackEnd.Domain.Common;
+using BackEnd.Domain.Common;
 using BackEnd.Domain.Entities.Identity;
 using BackEnd.Domain.Enums;
 using BackEnd.Domain.Events;
@@ -15,27 +15,45 @@ namespace BackEnd.Domain.Entities.Payment
         public Money Amount { get; private set; } = null!;
         public PaymentMethod Method { get; private set; }
         public PaymentStatus Status { get; private set; }
-        public string? ReceiptImagePath { get; private set; }
+
+        // VodafoneCash / InstaPay
+        public string? ReceiptImageUrl { get; private set; }
+        public string? ReceiptImagePublicId { get; private set; }
+        public string? ReceiptImagePath => ReceiptImageUrl;
+        public string? SenderPhoneNumber { get; private set; }
+
+        // Branch
         public BranchPaymentDetails? BranchDetails { get; private set; }
+
+        // Representative
         public RepresentativeDetails? RepresentativeInfo { get; private set; }
+
+        // Staff review
         public int? VerifiedByStaffId { get; private set; }
         public DateTime? VerifiedAt { get; private set; }
         public string? RejectionReason { get; private set; }
 
         private PaymentRequest() { }
 
-        // ── Vodafone Cash / InstaPay ──────────────────────────
+        /// <summary>إنشاء طلب دفع إلكتروني (VodafoneCash أو InstaPay)</summary>
         public static PaymentRequest CreateElectronic(
             int? subscriptionId, int? generalDonationId,
-            Money amount, PaymentMethod method, string receiptImagePath)
+            Money amount, PaymentMethod method,
+            string receiptImageUrl, string receiptImagePublicId, string senderPhoneNumber)
         {
             ValidateReference(subscriptionId, generalDonationId);
+
             if (method is not (PaymentMethod.VodafoneCash or PaymentMethod.InstaPay))
                 throw new InvalidPaymentRequestException(
-                    "Use this factory for VodafoneCash or InstaPay only.");
-            if (string.IsNullOrWhiteSpace(receiptImagePath))
-                throw new InvalidPaymentRequestException(
-                    "Receipt image is required.");
+                    "هذا الـ Factory مخصص لـ VodafoneCash أو InstaPay فقط.");
+
+            if (string.IsNullOrWhiteSpace(receiptImageUrl))
+                throw new InvalidPaymentRequestException("صورة الإيصال مطلوبة.");
+            if (string.IsNullOrWhiteSpace(receiptImagePublicId))
+                throw new InvalidPaymentRequestException("معرّف صورة الإيصال مطلوب.");
+
+            if (string.IsNullOrWhiteSpace(senderPhoneNumber))
+                throw new InvalidPaymentRequestException("رقم الهاتف المُحوَّل منه مطلوب.");
 
             return new PaymentRequest
             {
@@ -44,17 +62,20 @@ namespace BackEnd.Domain.Entities.Payment
                 Amount = amount,
                 Method = method,
                 Status = PaymentStatus.Pending,
-                ReceiptImagePath = receiptImagePath,
+                ReceiptImageUrl = receiptImageUrl,
+                ReceiptImagePublicId = receiptImagePublicId,
+                SenderPhoneNumber = senderPhoneNumber.Trim(),
                 CreatedOn = DateTime.UtcNow
             };
         }
 
-        // ── Branch ────────────────────────────────────────────
+        /// <summary>إنشاء طلب دفع في الفرع</summary>
         public static PaymentRequest CreateBranch(
             int? subscriptionId, int? generalDonationId,
             Money amount, BranchPaymentDetails branchDetails)
         {
             ValidateReference(subscriptionId, generalDonationId);
+
             return new PaymentRequest
             {
                 SubscriptionId = subscriptionId,
@@ -68,12 +89,13 @@ namespace BackEnd.Domain.Entities.Payment
             };
         }
 
-        // ── Representative ────────────────────────────────────
+        /// <summary>إنشاء طلب مندوب</summary>
         public static PaymentRequest CreateRepresentative(
             int? subscriptionId, int? generalDonationId,
             Money amount, RepresentativeDetails repDetails)
         {
             ValidateReference(subscriptionId, generalDonationId);
+
             return new PaymentRequest
             {
                 SubscriptionId = subscriptionId,
@@ -87,12 +109,12 @@ namespace BackEnd.Domain.Entities.Payment
             };
         }
 
-        // ── Business Methods ──────────────────────────────────
+        /// <summary>تأكيد الدفع من الـ Staff</summary>
         public void Verify(int staffId)
         {
             if (Status != PaymentStatus.Pending)
                 throw new InvalidPaymentRequestException(
-                    $"Cannot verify payment with status '{Status}'.");
+                    $"لا يمكن تأكيد طلب بحالة '{Status}'.");
 
             Status = PaymentStatus.Verified;
             VerifiedByStaffId = staffId;
@@ -104,13 +126,15 @@ namespace BackEnd.Domain.Entities.Payment
                 Amount.Amount, staffId));
         }
 
+        /// <summary>رفض الدفع من الـ Staff</summary>
         public void Reject(int staffId, string reason)
         {
             if (Status != PaymentStatus.Pending)
                 throw new InvalidPaymentRequestException(
-                    $"Cannot reject payment with status '{Status}'.");
+                    $"لا يمكن رفض طلب بحالة '{Status}'.");
+
             if (string.IsNullOrWhiteSpace(reason))
-                throw new ArgumentException("Rejection reason is required.");
+                throw new ArgumentException("سبب الرفض مطلوب.");
 
             Status = PaymentStatus.Rejected;
             VerifiedByStaffId = staffId;
@@ -118,21 +142,21 @@ namespace BackEnd.Domain.Entities.Payment
             UpdatedOn = DateTime.UtcNow;
         }
 
+        /// <summary>إلغاء الطلب من المتبرع</summary>
         public void Cancel()
         {
             if (Status != PaymentStatus.Pending)
-                throw new InvalidPaymentRequestException(
-                    "Only pending payments can be cancelled.");
+                throw new InvalidPaymentRequestException("يمكن إلغاء الطلبات المعلقة فقط.");
+
             Status = PaymentStatus.Cancelled;
             UpdatedOn = DateTime.UtcNow;
         }
 
-        private static void ValidateReference(
-            int? subscriptionId, int? generalDonationId)
+        private static void ValidateReference(int? subscriptionId, int? generalDonationId)
         {
             if (subscriptionId.HasValue == generalDonationId.HasValue)
                 throw new InvalidPaymentRequestException(
-                    "Link to subscription XOR generalDonation — not both or neither.");
+                    "يجب ربط الطلب باشتراك أو تبرع — وليس الاثنين أو لا شيء.");
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+using FluentValidation;
+using BackEnd.Application.Common.Validation;
 
 namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
 {
@@ -21,6 +22,18 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
                 .GreaterThan(0)
                 .When(x => x.Dto.TargetAmount.HasValue)
                 .WithMessage("المبلغ المستهدف يجب أن يكون أكبر من صفر.");
+
+            RuleFor(x => x.Dto.ImageFile)
+                .Must(file => file is null || FileUploadValidationRules.IsAllowedImage(file))
+                .WithMessage("صيغة الملف غير مدعومة. المسموح: jpg, jpeg, png.");
+
+            RuleFor(x => x.Dto.ImageFile)
+                .Must(file => file is null || FileUploadValidationRules.IsSizeWithinLimit(file))
+                .WithMessage("حجم الملف يجب ألا يتجاوز 5MB.");
+
+            RuleFor(x => x.Dto.ImageFile)
+                .Must(file => file is null || FileUploadValidationRules.IsSafeFileName(file))
+                .WithMessage("اسم الملف غير آمن.");
         }
     }
 }

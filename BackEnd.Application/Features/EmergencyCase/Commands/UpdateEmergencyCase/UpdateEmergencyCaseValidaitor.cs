@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+using FluentValidation;
+using BackEnd.Application.Common.Validation;
 
 namespace BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCase
 {
@@ -28,6 +29,18 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCas
                 .GreaterThan(0)
                 .When(x => x.RequiredAmount.HasValue)
                 .WithMessage("المبلغ المطلوب يجب أن يكون أكبر من صفر.");
+
+            RuleFor(x => x.Attachment)
+                .Must(file => file is null || FileUploadValidationRules.IsAllowedImageOrPdf(file))
+                .WithMessage("صيغة الملف غير مدعومة. المسموح: jpg, jpeg, png, pdf.");
+
+            RuleFor(x => x.Attachment)
+                .Must(file => file is null || FileUploadValidationRules.IsSizeWithinLimit(file))
+                .WithMessage("حجم الملف يجب ألا يتجاوز 5MB.");
+
+            RuleFor(x => x.Attachment)
+                .Must(file => file is null || FileUploadValidationRules.IsSafeFileName(file))
+                .WithMessage("اسم الملف غير آمن.");
         }
     }
 }

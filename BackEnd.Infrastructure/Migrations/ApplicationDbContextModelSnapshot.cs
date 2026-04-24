@@ -164,7 +164,7 @@ namespace BackEnd.Infrastructure.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@RESALA.ORG",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEJdl54i0inuZ5qE/KBVBmaBxzThOQ+vifrRdu7A9GufWjk54jboWUwCZlUdz8lOPxA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEF3zLqNHtpThiLB+ItJNn4y77Algucl+l+4UDf58QhKW4x8u6o2ikhBESVUYquJ5gw==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "admin-security",
                             TwoFactorEnabled = false,
@@ -404,6 +404,50 @@ namespace BackEnd.Infrastructure.Migrations
                     b.ToTable("Notifications");
                 });
 
+            modelBuilder.Entity("BackEnd.Domain.Entities.Payment.BranchAppointmentSlot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookedCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MaxCapacity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<TimeSpan>("OpenFrom")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan>("OpenTo")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime>("SlotDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BranchAppointmentSlots", (string)null);
+                });
+
             modelBuilder.Entity("BackEnd.Domain.Entities.Payment.GeneralDonation", b =>
                 {
                     b.Property<int>("Id")
@@ -516,6 +560,10 @@ namespace BackEnd.Infrastructure.Migrations
 
                     b.Property<string>("RejectionReason")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SenderPhoneNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -1132,12 +1180,6 @@ namespace BackEnd.Infrastructure.Migrations
                             b1.Property<int>("PaymentRequestId")
                                 .HasColumnType("int");
 
-                            b1.Property<string>("Address")
-                                .IsRequired()
-                                .HasMaxLength(500)
-                                .HasColumnType("nvarchar(500)")
-                                .HasColumnName("Branch_Address");
-
                             b1.Property<string>("ContactNumber")
                                 .IsRequired()
                                 .HasMaxLength(20)
@@ -1154,6 +1196,10 @@ namespace BackEnd.Infrastructure.Migrations
                                 .HasColumnType("datetime2")
                                 .HasColumnName("Branch_ScheduledDate");
 
+                            b1.Property<int>("SlotId")
+                                .HasColumnType("int")
+                                .HasColumnName("Branch_SlotId");
+
                             b1.HasKey("PaymentRequestId");
 
                             b1.ToTable("PaymentRequests");
@@ -1166,6 +1212,24 @@ namespace BackEnd.Infrastructure.Migrations
                         {
                             b1.Property<int>("PaymentRequestId")
                                 .HasColumnType("int");
+
+                            b1.Property<string>("Address")
+                                .IsRequired()
+                                .HasMaxLength(500)
+                                .HasColumnType("nvarchar(500)")
+                                .HasColumnName("Rep_Address");
+
+                            b1.Property<string>("ContactName")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)")
+                                .HasColumnName("Rep_ContactName");
+
+                            b1.Property<string>("ContactPhone")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("nvarchar(20)")
+                                .HasColumnName("Rep_ContactPhone");
 
                             b1.Property<int>("DeliveryAreaId")
                                 .HasColumnType("int")

@@ -1,0 +1,2499 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "رسالة الخيرية API",
+    "description": "## نظام إدارة رسالة الخيرية\n\n### الأدوار المتاحة:\n| الدور | طريقة الدخول | الصلاحيات |\n|-------|-------------|----------|\n| **Donor** | Phone Number | تسجيل — عرض بياناته — الاشتراك |\n| **Reception** | Username | إدارة المتبرعين — تسجيل تبرعات |\n| **Admin** | Username | كل الصلاحيات + إدارة الموظفين |\n\n### كيفية الاستخدام:\n1. سجّل دخول من `/api/v1/auth/login`\n2. انسخ الـ `token` من الـ Response\n3. اضغط **Authorize** في الأعلى والصق: `Bearer {token}`",
+    "contact": {
+      "name": "Resala Dev Team",
+      "email": "dev@resala.org"
+    },
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "Auth — Public"
+        ],
+        "summary": "تسجيل متبرع جديد (Register Donor)",
+        "description": "ينشئ حساباً جديداً للمتبرع ويُرسل OTP على بريده الإلكتروني للتحقق.\r\nالحساب يظل **غير مفعّل** حتى يتم التحقق عبر `/verify-email`.\r\n            \r\n**ملاحظات:**\r\n- رقم الهاتف يُستخدم كـ username للدخول لاحقاً\r\n- الـ OTP صالح لمدة **10 دقائق** فقط\r\n- يُرسل بريد إلكتروني تلقائياً بعد التسجيل\r\n            \r\n**Request Example:**\r\n```json\r\n{\r\n  \"name\": \"Ahmed Mohamed\",\r\n  \"email\": \"ahmed@example.com\",\r\n  \"phoneNumber\": \"01012345678\",\r\n  \"password\": \"SecurePass123\",\r\n  \"job\": \"Software Engineer\",\r\n  \"landline\": \"0223456789\"\r\n}\r\n```\r\n            \r\n**Success Response (201):**\r\n```json\r\n{\r\n  \"succeeded\": true,\r\n  \"message\": \"Registration successful. Check your email for OTP.\",\r\n  \"data\": { \"userId\": 42 }\r\n}\r\n```",
+        "operationId": "Auth_RegisterDonor",
+        "requestBody": {
+          "description": "بيانات التسجيل — الاسم والإيميل والهاتف والباسورد",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDonorCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDonorCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDonorCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم إنشاء الحساب بنجاح — يُرسل OTP على الإيميل",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterDonorResponseApiSuccessResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "رقم الهاتف أو الإيميل مسجّل مسبقاً",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "بيانات غير صحيحة أو باسورد ضعيف",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "فشل في التحقق من صحة البيانات"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify-email": {
+      "post": {
+        "tags": [
+          "Auth — Public"
+        ],
+        "summary": "التحقق من الإيميل بالـ OTP (Verify Email)",
+        "description": "يتحقق من صحة الـ OTP المُرسل على الإيميل ويُفعّل الحساب.\r\nبعد هذه الخطوة يصبح المستخدم قادراً على تسجيل الدخول.\r\n            \r\n**Request Example:**\r\n```json\r\n{\r\n  \"email\": \"ahmed@example.com\",\r\n  \"otp\": \"847291\"\r\n}\r\n```\r\n            \r\n**Success Response (200):**\r\n```json\r\n{\r\n  \"succeeded\": true,\r\n  \"message\": \"Email verified successfully. You can now log in.\",\r\n  \"data\": null\r\n}\r\n```",
+        "operationId": "Auth_VerifyEmail",
+        "requestBody": {
+          "description": "الإيميل + رمز OTP المكوّن من 6 أرقام",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم التحقق وتفعيل الحساب بنجاح",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StringApiSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "الـ OTP منتهي الصلاحية أو غير صحيح",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "الإيميل غير مسجّل في النظام",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "Auth — Public"
+        ],
+        "summary": "تسجيل الدخول (Login)",
+        "description": "يدعم **نوعين من الدخول:**\r\n            \r\n**1. المتبرع (Donor)** — يدخل بـ **رقم الهاتف**:\r\n```json\r\n{\r\n  \"phoneNumber\": \"+201012345678\",\r\n  \"password\": \"SecurePass123\"\r\n}\r\n```\r\n            \r\n**2. الموظف / الأدمن (Staff / Admin)** — يدخل بـ **Username**:\r\n```json\r\n{\r\n  \"username\": \"reception_ahmed\",\r\n  \"password\": \"StaffPass456\"\r\n}\r\n```\r\n            \r\n**Success Response (200):**\r\n```json\r\n{\r\n  \"succeeded\": true,\r\n  \"message\": \"Login successful.\",\r\n  \"data\": {\r\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\r\n    \"role\": \"Donor\",\r\n    \"userId\": 42,\r\n    \"name\": \"Ahmed Mohamed\",\r\n    \"phoneNumber\": \"01012345678\"\r\n  }\r\n}\r\n```\r\n            \r\n**استخدام الـ Token:**\r\nأضف الـ Token في كل Request تالي في الـ Header:\r\n```\r\nAuthorization: Bearer {token}\r\n```",
+        "operationId": "Auth_Login",
+        "requestBody": {
+          "description": "بيانات الدخول — هاتف أو username + باسورد",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "دخول ناجح — يرجع JWT Token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseApiSuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "بيانات دخول غير صحيحة",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "الحساب مقفل أو معلّق",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "tags": [
+          "Auth — Public"
+        ],
+        "summary": "طلب إعادة تعيين الباسورد (Forgot Password)",
+        "description": "يُرسل **رمز OTP** مكوّن من 6 أرقام إلى الإيميل المُدخل.\r\nالرمز صالح لمدة **10 دقائق**.\r\n            \r\n**Request Example:**\r\n```json\r\n{\r\n  \"email\": \"ahmed@example.com\"\r\n}\r\n```\r\n            \r\n**Success Response (200):**\r\n```json\r\n{\r\n  \"succeeded\": true,\r\n  \"message\": \"An OTP has been sent to your email address.\",\r\n  \"data\": null\r\n}\r\n```\r\n            \r\n**ملاحظة أمنية:** حتى لو الإيميل غير موجود، الـ Response يبدو نفسه\r\nلمنع enumeration attacks — لكن في المشروع الحالي يُرجع 404.",
+        "operationId": "Auth_ForgotPassword",
+        "requestBody": {
+          "description": "الإيميل المسجّل في النظام",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم إرسال الـ OTP على الإيميل",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StringApiSuccessResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "الإيميل غير مسجّل في النظام",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "tags": [
+          "Auth — Public"
+        ],
+        "summary": "إعادة تعيين الباسورد بالـ OTP (Reset Password)",
+        "description": "يُعيد تعيين الباسورد باستخدام الـ OTP المُرسل من `/forgot-password`.\r\n            \r\n**الخطوات:**\r\n1. اطلب OTP من `/forgot-password`\r\n2. أدخل الـ OTP + الباسورد الجديد هنا\r\n            \r\n**Request Example:**\r\n```json\r\n{\r\n  \"email\": \"ahmed@example.com\",\r\n  \"otp\": \"847291\",\r\n  \"newPassword\": \"NewSecurePass456\"\r\n}\r\n```\r\n            \r\n**Success Response (200):**\r\n```json\r\n{\r\n  \"succeeded\": true,\r\n  \"message\": \"Password has been reset successfully. You can now log in.\",\r\n  \"data\": null\r\n}\r\n```",
+        "operationId": "Auth_ResetPassword",
+        "requestBody": {
+          "description": "الإيميل + الـ OTP + الباسورد الجديد",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم تغيير الباسورد بنجاح",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StringApiSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "الـ OTP منتهي الصلاحية أو غير صحيح، أو الباسورد ضعيف",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "الإيميل غير موجود",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register-donor": {
+      "post": {
+        "tags": [
+          "Auth — Staff & Admin"
+        ],
+        "summary": "[Reception/Admin] تسجيل متبرع جديد من الداشبورد",
+        "description": "يُسجّل الموظف متبرعاً جديداً مباشرة من الداشبورد بدون الحاجة لـ OTP.\r\nالحساب يكون **مفعّلاً فوراً** لأن الموظف مسؤول عن التحقق.\r\n            \r\n**⚠️ يتطلب Bearer Token** لمستخدم بدور `Reception` أو `Admin`\r\n            \r\n**Request Example:**\r\n```json\r\n{\r\n  \"name\": \"Mona Ali\",\r\n  \"email\": \"mona@example.com\",\r\n  \"phoneNumber\": \"01198765432\",\r\n  \"password\": \"TempPass123\",\r\n  \"job\": \"Teacher\",\r\n  \"landline\": \"0223456789\"\r\n}\r\n```\r\n            \r\n**Success Response (201):**\r\n```json\r\n{\r\n  \"succeeded\": true,\r\n  \"message\": \"Donor registered successfully.\",\r\n  \"data\": { \"userId\": 55, \"message\": \"Donor registered by staff.\" }\r\n}\r\n```",
+        "operationId": "Auth_RegisterDonorByStaff",
+        "requestBody": {
+          "description": "بيانات المتبرع الجديد",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDonorByStaffCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDonorByStaffCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDonorByStaffCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم تسجيل المتبرع وتفعيل حسابه بنجاح",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterDonorResponseApiSuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "لم يتم تقديم Token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "الـ Token موجود لكن الدور غير مصرّح (ليس Reception أو Admin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "رقم الهاتف مسجّل مسبقاً",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/create-staff": {
+      "post": {
+        "tags": [
+          "Auth — Staff & Admin"
+        ],
+        "summary": "[Admin Only] إنشاء حساب موظف جديد",
+        "description": "يُنشئ الأدمن حساباً لموظف جديد (Reception أو Admin آخر).\r\nالحساب يكون **مفعّلاً فوراً**.\r\n            \r\n**⚠️ يتطلب Bearer Token** لمستخدم بدور `Admin` فقط\r\n            \r\n**StaffType Values:**\r\n- `1` → Admin\r\n- `2` → Reception\r\n            \r\n**Request Example (إنشاء موظف استقبال):**\r\n```json\r\n{\r\n  \"name\": \"Sara Hassan\",\r\n  \"username\": \"reception_sara\",\r\n  \"email\": \"sara@resala.org\",\r\n  \"phoneNumber\": \"01123456789\",\r\n  \"password\": \"StaffPass789\",\r\n  \"staffType\": 2\r\n}\r\n```\r\n            \r\n**Success Response (201):**\r\n```json\r\n{\r\n  \"succeeded\": true,\r\n  \"message\": \"Staff account created successfully.\",\r\n  \"data\": {\r\n    \"staffId\": 3,\r\n    \"username\": \"reception_sara\"\r\n  }\r\n}\r\n```",
+        "operationId": "Auth_CreateStaff",
+        "requestBody": {
+          "description": "بيانات الموظف الجديد — الاسم والـ Username والنوع",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStaffCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStaffCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStaffCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم إنشاء حساب الموظف بنجاح",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateStaffResponseApiSuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "لم يتم تقديم Token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "الـ Token موجود لكن الدور ليس Admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "الـ Username مأخوذ مسبقاً",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "فشل في إنشاء الحساب (باسورد ضعيف مثلاً)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/resend-otp": {
+      "post": {
+        "tags": [
+          "Auth — Public"
+        ],
+        "summary": "إعادة إرسال رمز OTP (Resend OTP)",
+        "description": "يُرسل رمز OTP جديد في حالتين:\r\n            \r\n**1. التحقق من الإيميل:**\r\n```json\r\n{\r\n  \"email\": \"ahmed@example.com\",\r\n  \"otpType\": \"EmailVerification\"\r\n}\r\n```\r\n            \r\n**2. إعادة تعيين الباسورد:**\r\n```json\r\n{\r\n  \"email\": \"ahmed@example.com\",\r\n  \"otpType\": \"PasswordReset\"\r\n}\r\n```\r\n            \r\n**Success Response (200):**\r\n```json\r\n{\r\n  \"succeeded\": true,\r\n  \"data\": \"تم إرسال رمز OTP جديد على بريدك الإلكتروني.\"\r\n}\r\n```\r\n            \r\n**ملاحظة:** الـ OTP الجديد يلغي أي OTP سابق تلقائياً.",
+        "operationId": "Auth_ResendOtp",
+        "requestBody": {
+          "description": "البريد الإلكتروني + نوع الـ OTP",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendOtpCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendOtpCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendOtpCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم إرسال الـ OTP بنجاح",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StringApiSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "البريد مفعّل مسبقاً أو نوع OTP غير صحيح",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "البريد الإلكتروني غير مسجّل",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh-token": {
+      "post": {
+        "tags": [
+          "Auth — Public"
+        ],
+        "summary": "تجديد الـ JWT Token بالـ Refresh Token (Refresh Token)",
+        "description": "يُجدّد الـ JWT Token المنتهي بدون الحاجة لتسجيل الدخول مجدداً.\r\n            \r\n**الخطوات:**\r\n1. عند انتهاء الـ JWT Token يرجع 401\r\n2. أرسل الـ Refresh Token هنا للحصول على Token جديد\r\n            \r\n**Request Example:**\r\n```json\r\n{\r\n  \"refreshToken\": \"dGhpcyBpcyBhIHNhbXBsZSByZWZyZXNoIHRva2Vu...\"\r\n}\r\n```\r\n            \r\n**Success Response (200):**\r\n```json\r\n{\r\n  \"succeeded\": true,\r\n  \"data\": {\r\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\r\n    \"refreshToken\": \"bmV3UmVmcmVzaFRva2VuSGVyZQ==\"\r\n  }\r\n}\r\n```\r\n            \r\n**ملاحظة:** الـ Refresh Token القديم يُلغى تلقائياً بعد الاستخدام.",
+        "operationId": "Auth_RefreshToken",
+        "requestBody": {
+          "description": "الـ Refresh Token المُرسَل عند تسجيل الدخول",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenCommand"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenCommand"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم تجديد الـ Token بنجاح — يرجع JWT + Refresh Token جديدين",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshTokenResponseApiSuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "الـ Refresh Token منتهي أو ملغي أو غير صحيح",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/emergency-cases": {
+      "post": {
+        "tags": [
+          "EmergencyCases — Admin"
+        ],
+        "summary": "[Admin] إنشاء حالة حرجة جديدة",
+        "description": "يُنشئ حالة حرجة جديدة في النظام.\r\n            \r\n**⚠️ يتطلب Bearer Token بدور Admin**\r\n            \r\n**Request Example:**\r\n```json\r\n{\r\n  \"title\": \"عملية عاجلة\",\r\n  \"description\": \"مريض يحتاج عملية فورًا\",\r\n  \"targetAmount\": 50000\r\n}\r\n```\r\n            \r\n**Success Response (201):**\r\n```json\r\n{\r\n  \"id\": 1,\r\n  \"title\": \"عملية عاجلة\",\r\n  \"description\": \"مريض يحتاج عملية فورًا\",\r\n  \"targetAmount\": 50000,\r\n  \"collectedAmount\": 0,\r\n  \"createdOn\": \"2026-03-25T00:00:00\"\r\n}\r\n```",
+        "operationId": "EmergencyCases_Create",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Title": {
+                    "type": "string"
+                  },
+                  "Description": {
+                    "type": "string"
+                  },
+                  "UrgencyLevel": {
+                    "$ref": "#/components/schemas/UrgencyLevel"
+                  },
+                  "RequiredAmount": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "Attachment": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "Title": {
+                  "style": "form"
+                },
+                "Description": {
+                  "style": "form"
+                },
+                "UrgencyLevel": {
+                  "style": "form"
+                },
+                "RequiredAmount": {
+                  "style": "form"
+                },
+                "Attachment": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmergencyCaseViewModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "EmergencyCases — Public"
+        ],
+        "summary": "جلب كل الحالات الحرجة",
+        "description": "يرجع قائمة بكل الحالات الحرجة المسجلة في النظام.",
+        "operationId": "EmergencyCases_GetAll",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmergencyCaseViewModel"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/emergency-cases/{id}": {
+      "get": {
+        "tags": [
+          "EmergencyCases — Public"
+        ],
+        "summary": "جلب حالة حرجة بالـ ID",
+        "description": "عرض تفاصيل حالة حرجة باستخدام المعرف",
+        "operationId": "EmergencyCases_GetById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "رقم الحالة الحرجة",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "تفاصيل الحالة",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmergencyCaseViewModel"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "الحالة غير موجودة",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "EmergencyCases — Admin"
+        ],
+        "summary": "[Admin] تعديل حالة حرجة",
+        "description": "تعديل بيانات حالة حرجة موجودة.\r\n            \r\n**⚠️ يتطلب Bearer Token بدور Admin**",
+        "operationId": "EmergencyCases_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "رقم الحالة الحرجة",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Title": {
+                    "type": "string"
+                  },
+                  "Description": {
+                    "type": "string"
+                  },
+                  "UrgencyLevel": {
+                    "$ref": "#/components/schemas/UrgencyLevel"
+                  },
+                  "RequiredAmount": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "Attachment": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "IsActive": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "encoding": {
+                "Title": {
+                  "style": "form"
+                },
+                "Description": {
+                  "style": "form"
+                },
+                "UrgencyLevel": {
+                  "style": "form"
+                },
+                "RequiredAmount": {
+                  "style": "form"
+                },
+                "Attachment": {
+                  "style": "form"
+                },
+                "IsActive": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmergencyCaseViewModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "EmergencyCases — Admin"
+        ],
+        "summary": "[Admin] حذف حالة حرجة",
+        "description": "حذف حالة حرجة من النظام — يتطلب Admin",
+        "operationId": "EmergencyCases_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "رقم الحالة الحرجة",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "تم الحذف بنجاح"
+          },
+          "404": {
+            "description": "الحالة غير موجودة",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/in-kind-donations": {
+      "post": {
+        "tags": [
+          "InKindDonations — Staff"
+        ],
+        "summary": "[Reception/Admin] تسجيل تبرع عيني جديد",
+        "description": "يُسجّل الموظف تبرعاً عينياً لمتبرع موجود في النظام.\r\n            \r\n**⚠️ يتطلب Bearer Token بدور Reception أو Admin**\r\n            \r\nالـ `recordedByStaffId` يُحدَّد تلقائياً من الـ Token — لا تُرسله.\r\n            \r\n**Request Example:**\r\n```json\r\n{\r\n  \"donorId\": 5,\r\n  \"donationTypeName\": \"ملابس\",\r\n  \"quantity\": 10,\r\n  \"description\": \"ملابس شتوية للأطفال\"\r\n}\r\n```\r\n            \r\n**Success Response (200):**\r\n```json\r\n{\r\n  \"succeeded\": true,\r\n  \"data\": {\r\n    \"id\": 1,\r\n    \"donorId\": 5,\r\n    \"donorName\": \"Ahmed Mohamed\",\r\n    \"donationTypeName\": \"ملابس\",\r\n    \"quantity\": 10,\r\n    \"description\": \"ملابس شتوية للأطفال\",\r\n    \"recordedByStaffId\": 2,\r\n    \"recordedByStaffName\": \"Sara Hassan\",\r\n    \"recordedAt\": \"2026-03-25T00:00:00\",\r\n    \"createdOn\": \"2026-03-25T00:00:00\"\r\n  }\r\n}\r\n```",
+        "operationId": "InKindDonations_Record",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordInKindDonationRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordInKindDonationRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordInKindDonationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم تسجيل التبرع بنجاح"
+          },
+          "400": {
+            "description": "بيانات غير صحيحة"
+          },
+          "404": {
+            "description": "المتبرع غير موجود"
+          },
+          "401": {
+            "description": "لم يتم تقديم Token"
+          },
+          "403": {
+            "description": "الدور غير مصرّح"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "InKindDonations — Staff"
+        ],
+        "summary": "[Reception/Admin] جلب كل التبرعات العينية",
+        "description": "يرجع قائمة بكل التبرعات العينية المسجّلة في النظام مرتبة من الأحدث.\r\n            \r\n**⚠️ يتطلب Bearer Token بدور Reception أو Admin**",
+        "operationId": "InKindDonations_GetAll",
+        "responses": {
+          "200": {
+            "description": "قائمة التبرعات العينية"
+          }
+        }
+      }
+    },
+    "/api/v1/in-kind-donations/{id}": {
+      "get": {
+        "tags": [
+          "InKindDonations — Staff"
+        ],
+        "summary": "[Reception/Admin] جلب تبرع عيني بالـ ID",
+        "operationId": "InKindDonations_GetById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "رقم التبرع العيني",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "تفاصيل التبرع"
+          },
+          "404": {
+            "description": "التبرع غير موجود"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "InKindDonations — Staff"
+        ],
+        "summary": "[Reception/Admin] تعديل تبرع عيني",
+        "operationId": "InKindDonations_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "رقم التبرع العيني",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInKindDonationRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInKindDonationRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInKindDonationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم التعديل بنجاح"
+          },
+          "400": {
+            "description": "بيانات غير صحيحة"
+          },
+          "404": {
+            "description": "التبرع غير موجود"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "InKindDonations — Admin"
+        ],
+        "summary": "[Admin Only] حذف تبرع عيني",
+        "operationId": "InKindDonations_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "رقم التبرع العيني",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "تم الحذف بنجاح"
+          },
+          "404": {
+            "description": "التبرع غير موجود"
+          }
+        }
+      }
+    },
+    "/api/v1/in-kind-donations/donor/{donorId}": {
+      "get": {
+        "tags": [
+          "InKindDonations — Staff"
+        ],
+        "summary": "[Reception/Admin] جلب كل التبرعات العينية لمتبرع محدد",
+        "operationId": "InKindDonations_GetByDonor",
+        "parameters": [
+          {
+            "name": "donorId",
+            "in": "path",
+            "description": "رقم المتبرع",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "قائمة تبرعات المتبرع"
+          },
+          "404": {
+            "description": "المتبرع غير موجود"
+          }
+        }
+      }
+    },
+    "/api/v1/sponsorships": {
+      "post": {
+        "tags": [
+          "Sponsorships — Admin"
+        ],
+        "summary": "[Admin] إنشاء برنامج كفالة جديد",
+        "description": "يُنشئ برنامج كفالة جديد في النظام.\r\n            \r\n**⚠️ يتطلب Bearer Token بدور Admin**\r\n            \r\n**Request Example:**\r\n```json\r\n{\r\n  \"name\": \"كفالة يتيم\",\r\n  \"description\": \"برنامج لكفالة الأيتام وتوفير احتياجاتهم\",\r\n  \"imageUrl\": \"https://example.com/image.jpg\",\r\n  \"icon\": \"orphan-icon\",\r\n  \"targetAmount\": 50000\r\n}\r\n```\r\n            \r\n**Success Response (201):**\r\n```json\r\n{\r\n  \"id\": 1,\r\n  \"name\": \"كفالة يتيم\",\r\n  \"description\": \"برنامج لكفالة الأيتام\",\r\n  \"targetAmount\": 50000,\r\n  \"collectedAmount\": 0,\r\n  \"isActive\": true,\r\n  \"createdAt\": \"2026-03-21T00:00:00\"\r\n}\r\n```",
+        "operationId": "Sponsorships_Create",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Name": {
+                    "type": "string"
+                  },
+                  "Description": {
+                    "type": "string"
+                  },
+                  "Icon": {
+                    "type": "string"
+                  },
+                  "TargetAmount": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "ImageFile": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "Name": {
+                  "style": "form"
+                },
+                "Description": {
+                  "style": "form"
+                },
+                "Icon": {
+                  "style": "form"
+                },
+                "TargetAmount": {
+                  "style": "form"
+                },
+                "ImageFile": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم إنشاء برنامج الكفالة بنجاح",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SponsorshipViewModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "بيانات غير صحيحة",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "لم يتم تقديم Token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "الدور غير مصرّح",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Sponsorships — Public"
+        ],
+        "summary": "جلب كل برامج الكفالة",
+        "description": "يرجع قائمة بكل برامج الكفالة المتاحة في النظام.\r\n            \r\n**متاح للجميع بدون Token**\r\n            \r\n**Success Response (200):**\r\n```json\r\n[\r\n  {\r\n    \"id\": 1,\r\n    \"name\": \"كفالة يتيم\",\r\n    \"description\": \"برنامج لكفالة الأيتام\",\r\n    \"targetAmount\": 50000,\r\n    \"collectedAmount\": 12000,\r\n    \"isActive\": true,\r\n    \"createdAt\": \"2026-03-21T00:00:00\"\r\n  }\r\n]\r\n```",
+        "operationId": "Sponsorships_GetAll",
+        "responses": {
+          "200": {
+            "description": "قائمة برامج الكفالة",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SponsorshipViewModel"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sponsorships/{id}": {
+      "get": {
+        "tags": [
+          "Sponsorships — Public"
+        ],
+        "summary": "جلب برنامج كفالة بالـ ID",
+        "description": "يرجع تفاصيل برنامج كفالة محدد.\r\n            \r\n**متاح للجميع بدون Token**\r\n            \r\n**Success Response (200):**\r\n```json\r\n{\r\n  \"id\": 1,\r\n  \"name\": \"كفالة يتيم\",\r\n  \"description\": \"برنامج لكفالة الأيتام\",\r\n  \"imageUrl\": \"https://example.com/image.jpg\",\r\n  \"icon\": \"orphan-icon\",\r\n  \"targetAmount\": 50000,\r\n  \"collectedAmount\": 12000,\r\n  \"isActive\": true,\r\n  \"createdAt\": \"2026-03-21T00:00:00\"\r\n}\r\n```",
+        "operationId": "Sponsorships_GetById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "رقم برنامج الكفالة",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "تفاصيل برنامج الكفالة",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SponsorshipViewModel"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "برنامج الكفالة غير موجود",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Sponsorships — Admin"
+        ],
+        "summary": "[Admin] تعديل برنامج كفالة",
+        "description": "يُعدّل بيانات برنامج كفالة موجود.\r\n            \r\n**⚠️ يتطلب Bearer Token بدور Admin**\r\n            \r\n**Request Example:**\r\n```json\r\n{\r\n  \"name\": \"كفالة يتيم — محدّث\",\r\n  \"description\": \"وصف محدّث للبرنامج\",\r\n  \"imageUrl\": \"https://example.com/new-image.jpg\",\r\n  \"icon\": \"new-icon\",\r\n  \"targetAmount\": 75000,\r\n  \"isActive\": true\r\n}\r\n```",
+        "operationId": "Sponsorships_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "رقم برنامج الكفالة",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Name": {
+                    "type": "string"
+                  },
+                  "Description": {
+                    "type": "string"
+                  },
+                  "Icon": {
+                    "type": "string"
+                  },
+                  "TargetAmount": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "IsActive": {
+                    "type": "boolean"
+                  },
+                  "ImageFile": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "Name": {
+                  "style": "form"
+                },
+                "Description": {
+                  "style": "form"
+                },
+                "Icon": {
+                  "style": "form"
+                },
+                "TargetAmount": {
+                  "style": "form"
+                },
+                "IsActive": {
+                  "style": "form"
+                },
+                "ImageFile": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم التعديل بنجاح",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SponsorshipViewModel"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "بيانات غير صحيحة",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "برنامج الكفالة غير موجود",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "لم يتم تقديم Token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "الدور غير مصرّح",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Sponsorships — Admin"
+        ],
+        "summary": "[Admin] حذف برنامج كفالة",
+        "description": "يحذف برنامج كفالة من النظام.\r\n            \r\n**⚠️ يتطلب Bearer Token بدور Admin**\r\n            \r\n**ملاحظة:** الحذف نهائي — لا يمكن التراجع.",
+        "operationId": "Sponsorships_Delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "رقم برنامج الكفالة المراد حذفه",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "تم الحذف بنجاح"
+          },
+          "404": {
+            "description": "برنامج الكفالة غير موجود",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "لم يتم تقديم Token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "الدور غير مصرّح",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions": {
+      "post": {
+        "tags": [
+          "Subscriptions — Donor"
+        ],
+        "summary": "[Donor] الخطوة 1 — إنشاء اشتراك في كفالة",
+        "description": "الخطوة الأولى: إنشاء الاشتراك فقط.\r\n            \r\nبعده استخدم `POST /subscriptions/{id}/submit-payment` لتقديم الدفع.\r\n            \r\n**دورات الدفع (PaymentCycle):**\r\n- `1` = شهري\r\n- `3` = كل 3 شهور\r\n- `6` = كل 6 شهور",
+        "operationId": "Subscriptions_Create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubscriptionDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubscriptionDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/{id}/submit-payment": {
+      "post": {
+        "tags": [
+          "Subscriptions — Donor"
+        ],
+        "summary": "[Donor] الخطوة 2 — تقديم طلب دفع",
+        "description": "يتم بعد إنشاء الاشتراك.\r\n            \r\n**طرق الدفع:**\r\n- `1` VodafoneCash → `receiptImage` + `senderPhoneNumber`\r\n- `2` InstaPay → `receiptImage` + `senderPhoneNumber`\r\n- `3` Branch → `slotId` + `donorName` + `branchContactPhone`\r\n- `4` Representative → `deliveryAreaId` + `contactName` + `contactPhone` + `address`",
+        "operationId": "Subscriptions_SubmitPayment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "PaymentMethod": {
+                    "$ref": "#/components/schemas/PaymentMethod"
+                  },
+                  "Amount": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "ReceiptImage": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "SenderPhoneNumber": {
+                    "type": "string"
+                  },
+                  "DeliveryAreaId": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "ContactName": {
+                    "type": "string"
+                  },
+                  "ContactPhone": {
+                    "type": "string"
+                  },
+                  "Address": {
+                    "type": "string"
+                  },
+                  "RepresentativeNotes": {
+                    "type": "string"
+                  },
+                  "SlotId": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "DonorName": {
+                    "type": "string"
+                  },
+                  "BranchContactPhone": {
+                    "type": "string"
+                  }
+                }
+              },
+              "encoding": {
+                "PaymentMethod": {
+                  "style": "form"
+                },
+                "Amount": {
+                  "style": "form"
+                },
+                "ReceiptImage": {
+                  "style": "form"
+                },
+                "SenderPhoneNumber": {
+                  "style": "form"
+                },
+                "DeliveryAreaId": {
+                  "style": "form"
+                },
+                "ContactName": {
+                  "style": "form"
+                },
+                "ContactPhone": {
+                  "style": "form"
+                },
+                "Address": {
+                  "style": "form"
+                },
+                "RepresentativeNotes": {
+                  "style": "form"
+                },
+                "SlotId": {
+                  "style": "form"
+                },
+                "DonorName": {
+                  "style": "form"
+                },
+                "BranchContactPhone": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/my": {
+      "get": {
+        "tags": [
+          "Subscriptions — Donor"
+        ],
+        "summary": "[Donor] جلب اشتراكاتي",
+        "operationId": "Subscriptions_GetMine",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/{id}": {
+      "delete": {
+        "tags": [
+          "Subscriptions — Donor"
+        ],
+        "summary": "[Donor] إلغاء اشتراك",
+        "operationId": "Subscriptions_Cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelSubscriptionRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelSubscriptionRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/available-slots": {
+      "get": {
+        "tags": [
+          "Subscriptions — Donor"
+        ],
+        "summary": "[Donor] جلب المواعيد المتاحة للزيارة في المقر",
+        "operationId": "Subscriptions_GetAvailableSlots",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/delivery-areas": {
+      "get": {
+        "tags": [
+          "Subscriptions — Donor"
+        ],
+        "summary": "[Donor] جلب مناطق التوصيل المتاحة",
+        "operationId": "Subscriptions_GetDeliveryAreas",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/payments/pending": {
+      "get": {
+        "tags": [
+          "Subscriptions — Staff"
+        ],
+        "summary": "[Reception/Admin] كل طلبات الدفع المعلقة",
+        "operationId": "Subscriptions_GetPendingPayments",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/payments/pending/representatives": {
+      "get": {
+        "tags": [
+          "Subscriptions — Staff"
+        ],
+        "summary": "[Reception/Admin] طلبات المناديب المعلقة",
+        "operationId": "Subscriptions_GetPendingRepresentatives",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/payments/pending/branch": {
+      "get": {
+        "tags": [
+          "Subscriptions — Staff"
+        ],
+        "summary": "[Reception/Admin] حجوزات الفرع المعلقة",
+        "operationId": "Subscriptions_GetPendingBranch",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/payments/{paymentId}/verify": {
+      "post": {
+        "tags": [
+          "Subscriptions — Staff"
+        ],
+        "summary": "[Reception/Admin] تأكيد دفعة",
+        "operationId": "Subscriptions_VerifyPayment",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/payments/{paymentId}/reject": {
+      "post": {
+        "tags": [
+          "Subscriptions — Staff"
+        ],
+        "summary": "[Reception/Admin] رفض دفعة",
+        "operationId": "Subscriptions_RejectPayment",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectPaymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectPaymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectPaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/slots": {
+      "post": {
+        "tags": [
+          "Subscriptions — Admin"
+        ],
+        "summary": "[Admin] إضافة موعد متاح في المقر",
+        "description": "**Request Example:**\r\n```json\r\n{\r\n  \"slotDate\": \"2026-05-01\",\r\n  \"openFrom\": \"10:00:00\",\r\n  \"openTo\": \"18:00:00\",\r\n  \"maxCapacity\": 20,\r\n  \"notes\": \"يوم الأربعاء\"\r\n}\r\n```",
+        "operationId": "Subscriptions_AddSlot",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSlotRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSlotRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSlotRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Subscriptions — Admin"
+        ],
+        "summary": "[Admin] جلب كل المواعيد",
+        "operationId": "Subscriptions_GetAllSlots",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiErrorResponse": {
+        "type": "object",
+        "properties": {
+          "succeeded": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "nullable": true
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wrapper for Error Response"
+      },
+      "CancelSubscriptionRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateSlotRequest": {
+        "type": "object",
+        "properties": {
+          "slotDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "openFrom": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "openTo": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "maxCapacity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateStaffCommand": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "nullable": true
+          },
+          "staffType": {
+            "$ref": "#/components/schemas/StaffType"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateStaffResponse": {
+        "type": "object",
+        "properties": {
+          "staffId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateStaffResponseApiSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "succeeded": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/CreateStaffResponse"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wrapper for Success Response"
+      },
+      "CreateSubscriptionDto": {
+        "type": "object",
+        "properties": {
+          "sponsorshipId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "paymentCycle": {
+            "$ref": "#/components/schemas/PaymentCycle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EmergencyCaseViewModel": {
+        "type": "object",
+        "properties": {
+          "image": {
+            "type": "string",
+            "nullable": true
+          },
+          "imagePublicId": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "receivedAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "urgencyLevel": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ForgotPasswordCommand": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoginCommand": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "refreshToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoginResponseApiSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "succeeded": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/LoginResponse"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wrapper for Success Response"
+      },
+      "PaymentCycle": {
+        "enum": [
+          1,
+          3,
+          6
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "PaymentMethod": {
+        "enum": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      },
+      "RecordInKindDonationRequest": {
+        "type": "object",
+        "properties": {
+          "donorId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "donationTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RefreshTokenCommand": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RefreshTokenResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "refreshToken": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RefreshTokenResponseApiSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "succeeded": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/RefreshTokenResponse"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wrapper for Success Response"
+      },
+      "RegisterDonorByStaffCommand": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "nullable": true
+          },
+          "job": {
+            "type": "string",
+            "nullable": true
+          },
+          "landline": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegisterDonorCommand": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "nullable": true
+          },
+          "job": {
+            "type": "string",
+            "nullable": true
+          },
+          "landline": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegisterDonorResponse": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegisterDonorResponseApiSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "succeeded": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/RegisterDonorResponse"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wrapper for Success Response"
+      },
+      "RejectPaymentRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResendOtpCommand": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "otpType": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResetPasswordCommand": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "otp": {
+            "type": "string",
+            "nullable": true
+          },
+          "newPassword": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SponsorshipViewModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "imagePublicId": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "collectedAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StaffType": {
+        "enum": [
+          1,
+          2
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "StringApiSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "succeeded": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wrapper for Success Response"
+      },
+      "UpdateInKindDonationRequest": {
+        "type": "object",
+        "properties": {
+          "donationTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UrgencyLevel": {
+        "enum": [
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "VerifyEmailCommand": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "otp": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "أدخل الـ Token هكذا: Bearer {token}",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": [ ]
+    }
+  ],
+  "tags": [
+    {
+      "name": "Sponsorships",
+      "description": "Sponsorships — إدارة برامج الكفالة والرعاية"
+    },
+    {
+      "name": "EmergencyCases",
+      "description": "Emergency Cases — إدارة الحالات الحرجة والتبرعات"
+    },
+    {
+      "name": "Auth",
+      "description": "Authentication — عمليات التسجيل والدخول واسترجاع الباسورد"
+    },
+    {
+      "name": "InKindDonation",
+      "description": "InKindDonations — إدارة التبرعات العينية"
+    },
+    {
+      "name": "Subscription",
+      "description": "Subscriptions — اشتراكات الكفالات"
+    },
+    {
+      "name": "Auth",
+      "description": "Authentication Module — إدارة المصادقة والتسجيل\r\nيغطي هذا الـ Controller كل عمليات المصادقة:\r\nتسجيل المتبرعين، الدخول، التحقق من الإيميل، واسترجاع الباسورد."
+    }
+  ]
+}

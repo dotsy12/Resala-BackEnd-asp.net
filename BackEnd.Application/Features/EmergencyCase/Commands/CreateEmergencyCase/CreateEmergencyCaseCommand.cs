@@ -1,7 +1,8 @@
-﻿using BackEnd.Application.Common.ResponseFormat;
+using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.ViewModles;
 using BackEnd.Domain.Enums;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +15,6 @@ namespace BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCas
         string? Description,
         UrgencyLevel UrgencyLevel,
         decimal RequiredAmount,
-        string? ImageUrl)
+        IFormFile? Attachment)
      : IRequest<Result<EmergencyCaseViewModel>>;
 }

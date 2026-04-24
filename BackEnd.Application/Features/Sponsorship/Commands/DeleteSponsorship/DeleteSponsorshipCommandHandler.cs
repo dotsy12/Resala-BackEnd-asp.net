@@ -1,5 +1,6 @@
-﻿using BackEnd.Application.Common.ResponseFormat;
+using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Interfaces.Repositories;
+using BackEnd.Application.Interfaces.Services;
 using BackEnd.Domain.Exceptions;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -10,13 +11,16 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.DeleteSponsorship
         : IRequestHandler<DeleteSponsorshipCommand, Result<bool>>
     {
         private readonly ISponsorshipRepository _repository;
+        private readonly IFileUploadService _fileUploadService;
         private readonly ILogger<DeleteSponsorshipCommandHandler> _logger;
 
         public DeleteSponsorshipCommandHandler(
             ISponsorshipRepository repository,
+            IFileUploadService fileUploadService,
             ILogger<DeleteSponsorshipCommandHandler> logger)
         {
             _repository = repository;
+            _fileUploadService = fileUploadService;
             _logger = logger;
         }
 
@@ -36,6 +40,17 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.DeleteSponsorship
                     "برنامج الكفالة غير موجود",
                     ErrorType.NotFound
                 );
+            }
+
+            if (!string.IsNullOrWhiteSpace(sponsorship.ImagePublicId))
+            {
+                var deleteFileResult = await _fileUploadService.DeleteAsync(
+                    sponsorship.ImagePublicId,
+                    cancellationToken);
+                if (!deleteFileResult.IsSuccess)
+                {
+                    return Result<bool>.Failure(deleteFileResult.Message, deleteFileResult.ErrorType);
+                }
             }
 
             await _repository.DeleteAsync(sponsorship, cancellationToken);

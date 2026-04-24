@@ -1,10 +1,11 @@
-﻿using BackEnd.Application.Abstractions.Persistence;
+using BackEnd.Application.Abstractions.Persistence;
 using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Application.Interfaces.Services;
 using BackEnd.Infrastructure.Persistence;
 using BackEnd.Infrastructure.Persistence.DbContext;
 using BackEnd.Infrastructure.Persistence.Repositories;
 using BackEnd.Infrastructure.Services;
+using BackEnd.Infrastructure.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,8 +24,9 @@ namespace BackEnd.Infrastructure.InfrastructureDependencies
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
           //  services.AddScoped<IIdentityService, IdentityServies>();
-           
-            services.AddScoped<IFileService, FileService>();
+
+            services.Configure<CloudinarySettings>(configuration.GetSection(CloudinarySettings.SectionName));
+            services.AddScoped<IFileUploadService, CloudinaryFileUploadService>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
            services.AddScoped<IJwtService, JwtService>();
            services.AddScoped<IOtpService, OtpService>();
@@ -40,6 +42,10 @@ namespace BackEnd.Infrastructure.InfrastructureDependencies
             services.AddScoped<ISponsorshipRepository, SponsorshipRepository>();
 
             services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+            services.AddScoped<ISponsorshipSubscriptionRepository, SponsorshipSubscriptionRepository>();
+            services.AddScoped<IPaymentRequestRepository, PaymentRequestRepository>();
+            services.AddScoped<IDeliveryAreaRepository, DeliveryAreaRepository>();
+            services.AddScoped<IAppointmentSlotRepository, AppointmentSlotRepository>();
 
 
             // أضف كمان

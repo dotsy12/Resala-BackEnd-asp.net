@@ -1,5 +1,7 @@
-﻿using BackEnd.Application.Common.ResponseFormat;
+using BackEnd.Application.Common.ResponseFormat;
+using BackEnd.Application.Common.Files;
 using BackEnd.Application.Interfaces.Repositories;
+using BackEnd.Application.Interfaces.Services;
 using BackEnd.Application.ViewModles;
 using BackEnd.Domain.ValueObjects;
 using MediatR;
@@ -11,13 +13,16 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
      : IRequestHandler<UpdateSponsorshipCommand, Result<SponsorshipViewModel>>
     {
         private readonly ISponsorshipRepository _repository;
+        private readonly IFileUploadService _fileUploadService;
         private readonly ILogger<UpdateSponsorshipCommandHandler> _logger;
 
         public UpdateSponsorshipCommandHandler(
             ISponsorshipRepository repository,
+            IFileUploadService fileUploadService,
             ILogger<UpdateSponsorshipCommandHandler> logger)
         {
             _repository = repository;
+            _fileUploadService = fileUploadService;
             _logger = logger;
         }
 
@@ -39,8 +44,27 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
 
             var dto = request.Dto;
 
+            string? imageUrl = sponsorship.ImagePath;
+            string? imagePublicId = sponsorship.ImagePublicId;
+            if (dto.ImageFile is not null)
+            {
+                var uploadResult = await _fileUploadService.ReplaceAsync(
+                    dto.ImageFile,
+                    sponsorship.ImagePublicId,
+                    "sponsorships",
+                    UploadContentType.Image,
+                    cancellationToken);
+                if (!uploadResult.IsSuccess)
+                {
+                    return Result<SponsorshipViewModel>.Failure(uploadResult.Message, ErrorType.BadRequest);
+                }
+
+                imageUrl = uploadResult.Value.Url;
+                imagePublicId = uploadResult.Value.PublicId;
+            }
+
             // ✅ Update images
-            sponsorship.UpdateImages(dto.ImageUrl, dto.Icon);
+            sponsorship.UpdateImages(imageUrl, imagePublicId, dto.Icon);
 
            
              sponsorship.UpdatePolicy(sponsorship.Policy);
@@ -59,6 +83,7 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.UpdateSponsorship
                 Name = sponsorship.Name,
                 Description = sponsorship.Description,
                 ImageUrl = sponsorship.ImagePath ?? "",
+                ImagePublicId = sponsorship.ImagePublicId,
                 Icon = sponsorship.IconPath ?? "",
                 TargetAmount = sponsorship.FinancialGoal?.Amount,
                 CollectedAmount = sponsorship.TotalCollected.Amount,

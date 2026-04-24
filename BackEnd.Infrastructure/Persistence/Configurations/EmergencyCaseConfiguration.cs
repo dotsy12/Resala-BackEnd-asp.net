@@ -1,4 +1,4 @@
-﻿using BackEnd.Domain.Entities.EmergencyCase;
+using BackEnd.Domain.Entities.EmergencyCase;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
@@ -13,6 +13,9 @@ namespace BackEnd.Infrastructure.Persistence.Configurations
     {
         public void Configure(EntityTypeBuilder<EmergencyCase> builder)
         {
+            builder.Property(e => e.ImagePath).HasMaxLength(1024);
+            builder.Property(e => e.ImagePublicId).HasMaxLength(256);
+
             builder.OwnsOne(e => e.RequiredAmount, money =>
             {
                 money.Property(m => m.Amount)

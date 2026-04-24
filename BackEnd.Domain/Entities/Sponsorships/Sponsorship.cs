@@ -1,4 +1,4 @@
-﻿using BackEnd.Domain.Common;
+using BackEnd.Domain.Common;
 using BackEnd.Domain.Enums;
 using BackEnd.Domain.Events;
 using BackEnd.Domain.Exceptions;
@@ -12,6 +12,7 @@ namespace BackEnd.Domain.Entities.Sponsorship
         public string Name { get; private set; } = null!;
         public string Description { get; private set; } = null!;
         public string? ImagePath { get; private set; }
+        public string? ImagePublicId { get; private set; }
         public string? IconPath { get; private set; }
         public string Category { get; private set; } = null!;
         public SponsorshipStatus Status { get; private set; }
@@ -68,9 +69,10 @@ namespace BackEnd.Domain.Entities.Sponsorship
             UpdatedOn = DateTime.UtcNow;
         }
 
-        public void UpdateImages(string? imagePath, string? iconPath)
+        public void UpdateImages(string? imagePath, string? imagePublicId, string? iconPath)
         {
             ImagePath = imagePath;
+            ImagePublicId = imagePublicId;
             IconPath = iconPath;
             UpdatedOn = DateTime.UtcNow;
         }
