@@ -17,6 +17,9 @@ namespace BackEnd.Application.Dtos.Subscription
 
     public record PaymentRequestSummaryDto(
         int Id,
+        int? SubscriptionId,
+        string? UserName,
+        string? Phone,
         string Method,
         string Status,
         decimal Amount,
@@ -30,6 +33,30 @@ namespace BackEnd.Application.Dtos.Subscription
         DateTime CreatedOn
     );
 
+    public record PaymentRequestDetailDto(
+        int PaymentId,
+        int? SubscriptionId,
+        string UserId,
+        string UserName,
+        string Phone,
+        string PaymentMethod,
+        decimal Amount,
+        string Status,
+        DateTime CreatedAt,
+        string? ReceiptImageUrl,
+        string? ReceiptPublicId,
+        string? Notes,
+        string? SenderPhoneNumber, // For VodafoneCash/InstaPay
+        // Branch
+        DateTime? ScheduledDate,
+        // Representative
+        string? Address,
+        // Staff
+        string? VerifiedBy,
+        DateTime? VerifiedAt,
+        string? RejectionReason
+    );
+
     public record AppointmentSlotDto(
         int Id,
         DateTime SlotDate,
@@ -41,7 +68,13 @@ namespace BackEnd.Application.Dtos.Subscription
         string? Notes
     );
 
-    public record DeliveryAreaDto(int Id, string Name);
+    public record DeliveryAreaDto(
+        int Id, 
+        string Name, 
+        string Governorate, 
+        string City, 
+        bool IsActive
+    );
 
     public record UpdateSubscriptionDto(decimal? NewAmount, string? NewPaymentCycle);
 }

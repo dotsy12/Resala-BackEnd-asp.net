@@ -50,6 +50,19 @@ namespace BackEnd.Domain.Entities.Sponsorship
         public void Activate() { Status = SponsorshipStatus.Active; UpdatedOn = DateTime.UtcNow; }
         public void Deactivate() { Status = SponsorshipStatus.Inactive; UpdatedOn = DateTime.UtcNow; }
 
+        public void UpdateDetails(string name, string description, Money? financialGoal)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Name is required.", nameof(name));
+            if (string.IsNullOrWhiteSpace(description))
+                throw new ArgumentException("Description is required.", nameof(description));
+
+            Name = name.Trim();
+            Description = description.Trim();
+            FinancialGoal = financialGoal;
+            UpdatedOn = DateTime.UtcNow;
+        }
+
         public void SetUrgencyLevel(UrgencyLevel level)
         {
             if (UrgencyLevel == level) return;

@@ -1,4 +1,4 @@
-﻿using BackEnd.Application.Interfaces.Repositories;
+using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Domain.Entities.Payment;
 using BackEnd.Domain.Enums;
 using BackEnd.Infrastructure.Persistence.DbContext;
@@ -15,7 +15,11 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
             => await _db.PaymentRequests.AddAsync(payment, ct);
 
         public Task<PaymentRequest?> GetByIdAsync(int id, CancellationToken ct = default)
-            => _db.PaymentRequests.FirstOrDefaultAsync(p => p.Id == id, ct);
+            => _db.PaymentRequests
+                .Include(p => p.Subscription)
+                    .ThenInclude(s => s.Donor)
+                        .ThenInclude(d => d.User)
+                .FirstOrDefaultAsync(p => p.Id == id, ct);
 
         public Task<bool> HasPendingPaymentAsync(int subscriptionId, CancellationToken ct = default)
             => _db.PaymentRequests.AnyAsync(p =>
@@ -32,6 +36,9 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
         public async Task<IReadOnlyList<PaymentRequest>> GetAllPendingAsync(
             CancellationToken ct = default)
             => await _db.PaymentRequests
+                .Include(p => p.Subscription)
+                    .ThenInclude(s => s.Donor)
+                        .ThenInclude(d => d.User)
                 .Where(p => p.Status == PaymentStatus.Pending)
                 .OrderBy(p => p.CreatedOn)
                 .ToListAsync(ct);
@@ -39,6 +46,9 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
         public async Task<IReadOnlyList<PaymentRequest>> GetPendingByMethodAsync(
             PaymentMethod method, CancellationToken ct = default)
             => await _db.PaymentRequests
+                .Include(p => p.Subscription)
+                    .ThenInclude(s => s.Donor)
+                        .ThenInclude(d => d.User)
                 .Where(p => p.Method == method && p.Status == PaymentStatus.Pending)
                 .OrderBy(p => p.CreatedOn)
                 .ToListAsync(ct);

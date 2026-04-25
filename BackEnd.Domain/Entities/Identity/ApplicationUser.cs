@@ -1,4 +1,4 @@
-﻿// Domain/Entities/Identity/ApplicationUser.cs
+// Domain/Entities/Identity/ApplicationUser.cs
 
 using Microsoft.AspNetCore.Identity;
 
@@ -9,6 +9,9 @@ namespace BackEnd.Domain.Entities.Identity
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string? ProfileImagePath { get; set; }
+        public string? ProfileImagePublicId { get; set; }
+        public string? Address { get; set; }
+        public string? Governorate { get; set; }
         public bool IsActive { get; set; } = true;
         public bool IsDeleted { get; set; } = false;
         public DateTime CreatedOn { get; set; } = DateTime.UtcNow;

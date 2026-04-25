@@ -35,6 +35,15 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
                 CancellationToken cancellationToken)
             {
                 return await _context.EmergencyCases
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            }
+
+            public async Task<EmergencyCase?> GetByIdTrackedAsync(
+                int id,
+                CancellationToken cancellationToken)
+            {
+                return await _context.EmergencyCases
                     .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
             }
 

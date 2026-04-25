@@ -1,4 +1,3 @@
-// GetPendingPaymentsQuery.cs + Handler
 using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Dtos.Subscription;
 using BackEnd.Application.Interfaces.Repositories;
@@ -21,21 +20,27 @@ namespace BackEnd.Application.Features.Subscriptions.Queries.GetPendingPayments
         }
 
         internal static PaymentRequestSummaryDto MapToDto(
-            Domain.Entities.Payment.PaymentRequest p) => new(
-            Id: p.Id,
-            Method: p.Method.ToString(),
-            Status: p.Status.ToString(),
-            Amount: p.Amount.Amount,
-            ReceiptImageUrl: p.ReceiptImageUrl,
-            ReceiptImagePublicId: p.ReceiptImagePublicId,
-            SenderPhoneNumber: p.SenderPhoneNumber,
-            ContactName: p.RepresentativeInfo?.ContactName,
-            ContactPhone: p.RepresentativeInfo?.ContactPhone ?? p.BranchDetails?.ContactNumber,
-            ScheduledDate: p.BranchDetails?.ScheduledDate,
-            RejectionReason: p.RejectionReason,
-            CreatedOn: p.CreatedOn
-        );
+            Domain.Entities.Payment.PaymentRequest p)
+        {
+            var user = p.Subscription?.Donor?.User;
+            
+            return new(
+                Id: p.Id,
+                SubscriptionId: p.SubscriptionId,
+                UserName: user != null ? $"{user.FirstName} {user.LastName}".Trim() : null,
+                Phone: user?.PhoneNumber,
+                Method: p.Method.ToString(),
+                Status: p.Status.ToString(),
+                Amount: p.Amount.Amount,
+                ReceiptImageUrl: p.ReceiptImageUrl,
+                ReceiptImagePublicId: p.ReceiptImagePublicId,
+                SenderPhoneNumber: p.SenderPhoneNumber,
+                ContactName: p.RepresentativeInfo?.ContactName,
+                ContactPhone: p.RepresentativeInfo?.ContactPhone ?? p.BranchDetails?.ContactNumber,
+                ScheduledDate: p.BranchDetails?.ScheduledDate,
+                RejectionReason: p.RejectionReason,
+                CreatedOn: p.CreatedOn
+            );
+        }
     }
-
-   
 }

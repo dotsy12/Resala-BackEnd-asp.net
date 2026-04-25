@@ -1,4 +1,3 @@
-﻿// GetPendingPaymentsQuery.cs + Handler
 using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Dtos.Subscription;
 using BackEnd.Application.Interfaces.Repositories;

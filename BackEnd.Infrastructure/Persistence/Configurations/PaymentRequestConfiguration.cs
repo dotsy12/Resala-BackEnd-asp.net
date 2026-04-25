@@ -39,6 +39,11 @@ namespace BackEnd.Infrastructure.Persistence.Configurations
                 m.Property(p => p.Amount).HasColumnName("Amount").HasPrecision(18, 2);
                 m.Property(p => p.Currency).HasColumnName("Currency").HasMaxLength(10);
             });
+
+            builder.HasOne(x => x.Subscription)
+                   .WithMany()
+                   .HasForeignKey(x => x.SubscriptionId)
+                   .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -10,6 +10,11 @@ using BackEnd.Application.Features.Subscriptions.Queries.GetAvailableSlots;
 using BackEnd.Application.Features.Subscriptions.Queries.GetDeliveryAreas;
 using BackEnd.Application.Features.Subscriptions.Queries.GetMySubscriptions;
 using BackEnd.Application.Features.Subscriptions.Queries.GetPendingPayments;
+using BackEnd.Application.Features.Subscriptions.Commands.CreateDeliveryArea;
+using BackEnd.Application.Features.Subscriptions.Commands.UpdateDeliveryArea;
+using BackEnd.Application.Features.Subscriptions.Commands.DeleteDeliveryArea;
+using BackEnd.Application.Features.Subscriptions.Queries.GetAdminDeliveryAreas;
+using BackEnd.Application.Features.Subscriptions.Queries.GetPaymentDetails;
 using BackEnd.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -26,7 +31,7 @@ namespace BackEnd.Api.Controllers
     /// - إنشاء اشتراك وإلغاؤه (Donor)
     /// - تقديم طلبات الدفع بكل الطرق المتاحة (Donor)
     /// - مراجعة وتأكيد/رفض الدفعات (Reception/Admin)
-    /// - إدارة مواعيد الفروع (Admin)
+    /// - إدارة مناطق التوصيل ومواعيد الفروع (Admin)
     /// </remarks>
     [Route("api/v1/subscriptions")]
     [ApiController]
@@ -51,210 +56,89 @@ namespace BackEnd.Api.Controllers
         // =====================================================
 
         /// <summary>إنشاء اشتراك كفالة جديد</summary>
-        /// <remarks>
-        /// يُنشئ اشتراكاً للمتبرع في برنامج كفالة محدد.
-        ///
-        /// **القواعد:**
-        /// - لا يمكن الاشتراك مرتين في نفس الكفالة
-        /// - الكفالة يجب أن تكون نشطة
-        /// - المبلغ يجب أن يكون أكبر من صفر
-        ///
-        /// **دورات الدفع المتاحة:**
-        /// - `1` = شهري
-        /// - `3` = ربع سنوي
-        /// - `6` = نصف سنوي
-        ///
-        /// **مثال:**
-        /// ```json
-        /// {
-        ///   "sponsorshipId": 1,
-        ///   "amount": 500,
-        ///   "paymentCycle": 1
-        /// }
-        /// ```
-        /// </remarks>
         [HttpPost]
         [Authorize(Roles = "Donor")]
         [ProducesResponseType(typeof(ApiResponse<SubscriptionDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [SwaggerOperation(
             Summary = "[Donor] إنشاء اشتراك كفالة",
-            Description = "يُنشئ اشتراكاً جديداً للمتبرع في برنامج كفالة — يتطلب دور Donor",
-            OperationId = "Subscriptions_Create",
             Tags = new[] { "Subscriptions — Donor" })]
         public async Task<IActionResult> Create(
             [FromBody] CreateSubscriptionDto dto, CancellationToken ct)
         {
             var donorId = GetDonorId();
             if (donorId == 0)
-                return Ok(Result<object>.Failure(
-                    "لم يتم التعرف على هوية المتبرع.", ErrorType.Unauthorized));
+                return Ok(Result<object>.Failure("لم يتم التعرف على هوية المتبرع.", ErrorType.Unauthorized));
 
             return Ok(await _mediator.Send(new CreateSubscriptionCommand(donorId, dto), ct));
         }
 
         /// <summary>تقديم طلب دفع لاشتراك</summary>
-        /// <remarks>
-        /// يُقدِّم المتبرع طلب دفع لاشتراكه باستخدام إحدى طرق الدفع المتاحة.
-        ///
-        /// **طرق الدفع:**
-        ///
-        /// 1. **فودافون كاش (Method=1)**
-        ///    - `SenderPhoneNumber`: رقم الهاتف الذي تم التحويل منه
-        ///    - `ReceiptImage`: صورة الإيصال (jpg/png/pdf — max 5MB)
-        ///
-        /// 2. **InstaPay (Method=2)**
-        ///    - `SenderPhoneNumber`: رقم الهاتف
-        ///    - `ReceiptImage`: صورة الإيصال
-        ///
-        /// 3. **الحضور للفرع (Method=3)**
-        ///    - `SlotId`: معرف الموعد المتاح (من GET /available-slots)
-        ///    - `DonorName`: الاسم الذي سيظهر للموظف
-        ///    - `BranchContactPhone`: رقم هاتف للتواصل
-        ///
-        /// 4. **مندوب (Method=4)**
-        ///    - `DeliveryAreaId`: معرف منطقة التوصيل (من GET /delivery-areas)
-        ///    - `ContactName`: الاسم
-        ///    - `ContactPhone`: رقم الهاتف
-        ///    - `Address`: العنوان الكامل
-        ///    - `RepresentativeNotes`: ملاحظات إضافية (اختياري)
-        ///
-        /// **ملاحظة:** يجب إرسال الطلب كـ `multipart/form-data`
-        /// </remarks>
         [HttpPost("{id:int}/submit-payment")]
         [Authorize(Roles = "Donor")]
         [Consumes("multipart/form-data")]
-        [RequestSizeLimit(10 * 1024 * 1024)] // 10MB max request
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [SwaggerOperation(
             Summary = "[Donor] تقديم طلب دفع",
-            Description = "يُقدِّم المتبرع طلب دفع لاشتراكه. يدعم VodafoneCash, InstaPay, Branch, Representative.",
-            OperationId = "Subscriptions_SubmitPayment",
             Tags = new[] { "Subscriptions — Donor" })]
         public async Task<IActionResult> SubmitPayment(
-            /// <param name="id">معرف الاشتراك</param>
             int id,
             [FromForm] SubmitPaymentDto dto,
             CancellationToken ct)
         {
             var donorId = GetDonorId();
             if (donorId == 0)
-                return Ok(Result<object>.Failure(
-                    "لم يتم التعرف على هوية المتبرع.", ErrorType.Unauthorized));
+                return Ok(Result<object>.Failure("لم يتم التعرف على هوية المتبرع.", ErrorType.Unauthorized));
 
             return Ok(await _mediator.Send(new SubmitPaymentCommand(id, donorId, dto), ct));
         }
 
         /// <summary>جلب اشتراكات المتبرع الحالي</summary>
-        /// <remarks>
-        /// يرجع قائمة بجميع اشتراكات المتبرع المُسجَّل حالياً، مع آخر طلبات الدفع لكل اشتراك.
-        ///
-        /// **يتضمن الاشتراكات:**
-        /// - النشطة (Active)
-        /// - الملغاة (Cancelled)
-        /// - المعلَّقة بسبب التأخر (Suspended)
-        /// </remarks>
         [HttpGet("my")]
         [Authorize(Roles = "Donor")]
         [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<SubscriptionDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
         [SwaggerOperation(
             Summary = "[Donor] جلب اشتراكاتي",
-            Description = "يرجع قائمة بجميع اشتراكات المتبرع الحالي مع آخر طلبات الدفع.",
-            OperationId = "Subscriptions_GetMine",
             Tags = new[] { "Subscriptions — Donor" })]
         public async Task<IActionResult> GetMine(CancellationToken ct)
         {
             var donorId = GetDonorId();
             if (donorId == 0)
-                return Ok(Result<object>.Failure(
-                    "لم يتم التعرف على هوية المتبرع.", ErrorType.Unauthorized));
+                return Ok(Result<object>.Failure("لم يتم التعرف على هوية المتبرع.", ErrorType.Unauthorized));
 
             return Ok(await _mediator.Send(new GetMySubscriptionsQuery(donorId), ct));
         }
 
         /// <summary>إلغاء اشتراك</summary>
-        /// <remarks>
-        /// يُلغي المتبرع اشتراكه في كفالة معينة.
-        ///
-        /// **القواعد:**
-        /// - فقط المتبرع صاحب الاشتراك يمكنه الإلغاء
-        /// - الاشتراك يجب أن يكون في حالة Active أو Suspended
-        /// - يمكن إضافة سبب الإلغاء (اختياري)
-        ///
-        /// **مثال:**
-        /// ```json
-        /// { "reason": "ظروف مادية" }
-        /// ```
-        /// </remarks>
         [HttpDelete("{id:int}")]
         [Authorize(Roles = "Donor")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [SwaggerOperation(
             Summary = "[Donor] إلغاء اشتراك",
-            Description = "يُلغي المتبرع اشتراكه — يتطلب أن يكون الاشتراك نشطاً أو معلَّقاً، وأن يكون المتبرع هو الصاحب.",
-            OperationId = "Subscriptions_Cancel",
             Tags = new[] { "Subscriptions — Donor" })]
         public async Task<IActionResult> Cancel(
-            /// <param name="id">معرف الاشتراك</param>
             int id,
             [FromBody] CancelSubscriptionRequest dto,
             CancellationToken ct)
         {
             var donorId = GetDonorId();
             if (donorId == 0)
-                return Ok(Result<object>.Failure(
-                    "لم يتم التعرف على هوية المتبرع.", ErrorType.Unauthorized));
+                return Ok(Result<object>.Failure("لم يتم التعرف على هوية المتبرع.", ErrorType.Unauthorized));
 
-            return Ok(await _mediator.Send(
-                new CancelSubscriptionCommand(id, donorId, dto.Reason), ct));
+            return Ok(await _mediator.Send(new CancelSubscriptionCommand(id, donorId, dto.Reason), ct));
         }
 
         /// <summary>المواعيد المتاحة للحضور في الفرع</summary>
-        /// <remarks>
-        /// يرجع قائمة بالمواعيد المتاحة في الفرع لاختيار موعد الدفع.
-        ///
-        /// **الاستخدام:** عند اختيار طريقة الدفع `Branch (Method=3)`,
-        /// استخدم الـ `SlotId` من هذه القائمة في `SubmitPayment`.
-        ///
-        /// **يُرجع فقط:** المواعيد المستقبلية التي لم تمتلئ بعد.
-        /// </remarks>
         [HttpGet("available-slots")]
         [Authorize(Roles = "Donor")]
-        [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<AppointmentSlotDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
         [SwaggerOperation(
             Summary = "[Donor] المواعيد المتاحة في المقر",
-            Description = "يرجع قائمة بالمواعيد المستقبلية المتاحة للحضور في الفرع. استخدم SlotId في submit-payment.",
-            OperationId = "Subscriptions_GetAvailableSlots",
             Tags = new[] { "Subscriptions — Donor" })]
         public async Task<IActionResult> GetAvailableSlots(CancellationToken ct)
             => Ok(await _mediator.Send(new GetAvailableSlotsQuery(), ct));
 
         /// <summary>مناطق توصيل المناديب المتاحة</summary>
-        /// <remarks>
-        /// يرجع قائمة بمناطق التوصيل المتاحة لاختيار منطقة عند إرسال مندوب.
-        ///
-        /// **الاستخدام:** عند اختيار طريقة الدفع `Representative (Method=4)`,
-        /// استخدم الـ `DeliveryAreaId` من هذه القائمة في `SubmitPayment`.
-        /// </remarks>
         [HttpGet("delivery-areas")]
         [Authorize(Roles = "Donor")]
-        [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<DeliveryAreaDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
         [SwaggerOperation(
             Summary = "[Donor] مناطق التوصيل المتاحة",
-            Description = "يرجع قائمة مناطق توصيل المناديب النشطة. استخدم DeliveryAreaId في submit-payment.",
-            OperationId = "Subscriptions_GetDeliveryAreas",
             Tags = new[] { "Subscriptions — Donor" })]
         public async Task<IActionResult> GetDeliveryAreas(CancellationToken ct)
             => Ok(await _mediator.Send(new GetDeliveryAreasQuery(), ct));
@@ -264,210 +148,157 @@ namespace BackEnd.Api.Controllers
         // =====================================================
 
         /// <summary>جلب طلبات الدفع المعلقة (كل الطرق)</summary>
-        /// <remarks>
-        /// يرجع جميع طلبات الدفع التي بحالة `Pending` بغض النظر عن طريقة الدفع.
-        ///
-        /// **مفيد لـ:** Dashboard الموظف لعرض كل الطلبات المنتظِرة.
-        ///
-        /// **الطلبات تشمل:** VodafoneCash, InstaPay, Branch, Representative
-        /// </remarks>
         [HttpGet("payments/pending")]
         [Authorize(Roles = "Reception,Admin")]
-        [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<object>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PaymentRequestSummaryDto>>), StatusCodes.Status200OK)]
         [SwaggerOperation(
-            Summary = "[Reception/Admin] طلبات الدفع المعلقة",
-            Description = "يرجع كل طلبات الدفع بحالة Pending من كل طرق الدفع. للموظفين فقط.",
-            OperationId = "Subscriptions_GetPendingPayments",
+            Summary = "[Reception/Admin] كل طلبات الدفع المعلقة",
             Tags = new[] { "Subscriptions — Staff" })]
         public async Task<IActionResult> GetPendingPayments(CancellationToken ct)
             => Ok(await _mediator.Send(new GetPendingPaymentsQuery(), ct));
 
-        /// <summary>جلب طلبات الدفع عبر المناديب</summary>
-        /// <remarks>
-        /// يرجع طلبات الدفع المعلقة التي اختار أصحابها طريقة المندوب فقط.
-        ///
-        /// **الاستخدام:** لتوزيع المناديب وتعيينهم للطلبات المنتظِرة.
-        /// </remarks>
+        /// <summary>جلب طلبات الدفع عبر المناديب المعلقة</summary>
         [HttpGet("payments/pending/representatives")]
         [Authorize(Roles = "Reception,Admin")]
-        [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<object>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [SwaggerOperation(
             Summary = "[Reception/Admin] طلبات المناديب المعلقة",
-            Description = "يرجع طلبات الدفع بطريقة المندوب والحالة Pending. لتوزيع المناديب.",
-            OperationId = "Subscriptions_GetPendingRepresentatives",
             Tags = new[] { "Subscriptions — Staff" })]
         public async Task<IActionResult> GetPendingRepresentatives(CancellationToken ct)
-            => Ok(await _mediator.Send(
-                new GetPendingPaymentsByMethodQuery(PaymentMethod.Representative), ct));
+            => Ok(await _mediator.Send(new GetPendingPaymentsByMethodQuery(PaymentMethod.Representative), ct));
 
         /// <summary>جلب حجوزات الفرع المعلقة</summary>
-        /// <remarks>
-        /// يرجع طلبات الدفع المعلقة التي اختار أصحابها الحضور للفرع.
-        ///
-        /// **الاستخدام:** لتجهيز استقبال المتبرعين في المواعيد المحددة.
-        /// </remarks>
         [HttpGet("payments/pending/branch")]
         [Authorize(Roles = "Reception,Admin")]
-        [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<object>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [SwaggerOperation(
             Summary = "[Reception/Admin] حجوزات الفرع المعلقة",
-            Description = "يرجع طلبات الدفع بطريقة الفرع والحالة Pending. لتجهيز استقبال المتبرعين.",
-            OperationId = "Subscriptions_GetPendingBranch",
             Tags = new[] { "Subscriptions — Staff" })]
         public async Task<IActionResult> GetPendingBranch(CancellationToken ct)
-            => Ok(await _mediator.Send(
-                new GetPendingPaymentsByMethodQuery(PaymentMethod.Branch), ct));
+            => Ok(await _mediator.Send(new GetPendingPaymentsByMethodQuery(PaymentMethod.Branch), ct));
+
+        /// <summary>جلب طلبات Vodafone Cash المعلقة</summary>
+        [HttpGet("payments/pending/vodafonecash")]
+        [Authorize(Roles = "Reception,Admin")]
+        [SwaggerOperation(
+            Summary = "[Reception/Admin] طلبات Vodafone Cash المعلقة",
+            Tags = new[] { "Subscriptions — Staff" })]
+        public async Task<IActionResult> GetPendingVodafoneCash(CancellationToken ct)
+            => Ok(await _mediator.Send(new GetPendingPaymentsByMethodQuery(PaymentMethod.VodafoneCash), ct));
+
+        /// <summary>جلب طلبات InstaPay المعلقة</summary>
+        [HttpGet("payments/pending/instapay")]
+        [Authorize(Roles = "Reception,Admin")]
+        [SwaggerOperation(
+            Summary = "[Reception/Admin] طلبات InstaPay المعلقة",
+            Tags = new[] { "Subscriptions — Staff" })]
+        public async Task<IActionResult> GetPendingInstaPay(CancellationToken ct)
+            => Ok(await _mediator.Send(new GetPendingPaymentsByMethodQuery(PaymentMethod.InstaPay), ct));
+
+        /// <summary>جلب تفاصيل طلب دفع محدد</summary>
+        [HttpGet("payments/{paymentId:int}")]
+        [Authorize(Roles = "Reception,Admin")]
+        [ProducesResponseType(typeof(ApiResponse<PaymentRequestDetailDto>), StatusCodes.Status200OK)]
+        [SwaggerOperation(
+            Summary = "[Reception/Admin] تفاصيل طلب دفع",
+            Tags = new[] { "Subscriptions — Staff" })]
+        public async Task<IActionResult> GetPaymentDetails(int paymentId, CancellationToken ct)
+            => Ok(await _mediator.Send(new GetPaymentDetailsQuery(paymentId), ct));
 
         /// <summary>تأكيد دفعة</summary>
-        /// <remarks>
-        /// يُؤكِّد الموظف استلام الدفعة وتحديث حالة الاشتراك.
-        ///
-        /// **ما يحدث عند التأكيد:**
-        /// 1. حالة طلب الدفع → `Verified`
-        /// 2. `NextPaymentDate` للاشتراك تتقدم بمقدار دورة الدفع
-        /// 3. إذا كان الاشتراك `Suspended` → يعود `Active`
-        /// 4. يُرسَل إشعار للمتبرع
-        ///
-        /// **ملاحظة:** لا يمكن التأكيد على دفعة محذوفة أو مرفوضة مسبقاً.
-        /// </remarks>
         [HttpPost("payments/{paymentId:int}/verify")]
         [Authorize(Roles = "Reception,Admin")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [SwaggerOperation(
             Summary = "[Reception/Admin] تأكيد دفعة",
-            Description = "يُؤكِّد الموظف استلام الدفعة. يُحدِّث NextPaymentDate ويُرسل إشعاراً للمتبرع.",
-            OperationId = "Subscriptions_VerifyPayment",
             Tags = new[] { "Subscriptions — Staff" })]
-        public async Task<IActionResult> VerifyPayment(
-            /// <param name="paymentId">معرف طلب الدفع</param>
-            int paymentId,
-            CancellationToken ct)
+        public async Task<IActionResult> VerifyPayment(int paymentId, CancellationToken ct)
         {
             var staffId = GetStaffId();
             if (staffId == 0)
-                return Ok(Result<object>.Failure(
-                    "لم يتم التعرف على هوية الموظف.", ErrorType.Unauthorized));
+                return Ok(Result<object>.Failure("لم يتم التعرف على هوية الموظف.", ErrorType.Unauthorized));
 
             return Ok(await _mediator.Send(new VerifyPaymentCommand(paymentId, staffId), ct));
         }
 
         /// <summary>رفض دفعة مع ذكر السبب</summary>
-        /// <remarks>
-        /// يرفض الموظف طلب الدفع مع إرسال سبب الرفض للمتبرع.
-        ///
-        /// **ما يحدث عند الرفض:**
-        /// 1. حالة طلب الدفع → `Rejected`
-        /// 2. سبب الرفض يُحفَظ ويظهر للمتبرع
-        /// 3. يُرسَل إشعار للمتبرع بسبب الرفض
-        ///
-        /// **أمثلة على أسباب الرفض:**
-        /// - "الصورة غير واضحة — يرجى إعادة الإرسال"
-        /// - "المبلغ في الإيصال لا يطابق مبلغ الاشتراك"
-        /// - "رقم الهاتف المُرسِل غير مطابق"
-        ///
-        /// **مثال:**
-        /// ```json
-        /// { "reason": "الصورة غير واضحة — يرجى إعادة الإرسال" }
-        /// ```
-        /// </remarks>
         [HttpPost("payments/{paymentId:int}/reject")]
         [Authorize(Roles = "Reception,Admin")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [SwaggerOperation(
             Summary = "[Reception/Admin] رفض دفعة",
-            Description = "يرفض الموظف طلب الدفع مع إرسال سبب الرفض. يُرسل إشعاراً للمتبرع بالسبب.",
-            OperationId = "Subscriptions_RejectPayment",
             Tags = new[] { "Subscriptions — Staff" })]
-        public async Task<IActionResult> RejectPayment(
-            /// <param name="paymentId">معرف طلب الدفع</param>
-            int paymentId,
-            [FromBody] RejectPaymentRequest dto,
-            CancellationToken ct)
+        public async Task<IActionResult> RejectPayment(int paymentId, [FromBody] RejectPaymentRequest dto, CancellationToken ct)
         {
             var staffId = GetStaffId();
             if (staffId == 0)
-                return Ok(Result<object>.Failure(
-                    "لم يتم التعرف على هوية الموظف.", ErrorType.Unauthorized));
+                return Ok(Result<object>.Failure("لم يتم التعرف على هوية الموظف.", ErrorType.Unauthorized));
 
-            return Ok(await _mediator.Send(
-                new RejectPaymentCommand(paymentId, staffId, dto.Reason), ct));
+            return Ok(await _mediator.Send(new RejectPaymentCommand(paymentId, staffId, dto.Reason), ct));
         }
 
         // =====================================================
         // ADMIN ENDPOINTS
         // =====================================================
 
+        /// <summary>إضافة منطقة توصيل جديدة</summary>
+        [HttpPost("delivery-areas")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(ApiResponse<CreateDeliveryAreaResponse>), StatusCodes.Status201Created)]
+        [SwaggerOperation(
+            Summary = "[Admin] إضافة منطقة توصيل",
+            Tags = new[] { "Subscriptions — Admin" })]
+        public async Task<IActionResult> AddDeliveryArea([FromBody] CreateDeliveryAreaCommand cmd, CancellationToken ct)
+        {
+            var result = await _mediator.Send(cmd, ct);
+            return StatusCode(StatusCodes.Status201Created, result);
+        }
+
+        /// <summary>تعديل منطقة توصيل</summary>
+        [HttpPut("delivery-areas/{id:int}")]
+        [Authorize(Roles = "Admin")]
+        [SwaggerOperation(
+            Summary = "[Admin] تعديل منطقة توصيل",
+            Tags = new[] { "Subscriptions — Admin" })]
+        public async Task<IActionResult> UpdateDeliveryArea(int id, [FromBody] UpdateDeliveryAreaCommand cmd, CancellationToken ct)
+        {
+            if (id != cmd.Id) return BadRequest();
+            return Ok(await _mediator.Send(cmd, ct));
+        }
+
+        /// <summary>حذف منطقة توصيل نهائياً</summary>
+        [HttpDelete("delivery-areas/{id:int}")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(ApiResponse<DeleteDeliveryAreaResponse>), StatusCodes.Status200OK)]
+        [SwaggerOperation(
+            Summary = "[Admin] حذف منطقة توصيل",
+            Tags = new[] { "Subscriptions — Admin" })]
+        public async Task<IActionResult> DeleteDeliveryArea(int id, CancellationToken ct)
+            => Ok(await _mediator.Send(new DeleteDeliveryAreaCommand(id), ct));
+
+        /// <summary>جلب كل المناطق للأدمن</summary>
+        [HttpGet("delivery-areas/admin")]
+        [Authorize(Roles = "Admin")]
+        [SwaggerOperation(
+            Summary = "[Admin] جلب كل المناطق",
+            Tags = new[] { "Subscriptions — Admin" })]
+        public async Task<IActionResult> GetAdminDeliveryAreas(CancellationToken ct)
+            => Ok(await _mediator.Send(new GetAdminDeliveryAreasQuery(), ct));
+
         /// <summary>إضافة موعد جديد في الفرع</summary>
-        /// <remarks>
-        /// يُضيف Admin موعداً متاحاً للحضور في الفرع لاستقبال المتبرعين.
-        ///
-        /// **الحقول:**
-        /// - `slotDate`: تاريخ الموعد (يجب أن يكون مستقبلياً)
-        /// - `openFrom`: وقت الفتح (مثال: "09:00:00")
-        /// - `openTo`: وقت الإغلاق (مثال: "14:00:00")
-        /// - `maxCapacity`: أقصى عدد للحجوزات
-        /// - `notes`: ملاحظات اختيارية
-        ///
-        /// **مثال:**
-        /// ```json
-        /// {
-        ///   "slotDate": "2026-05-15",
-        ///   "openFrom": "09:00:00",
-        ///   "openTo": "14:00:00",
-        ///   "maxCapacity": 20,
-        ///   "notes": "متاح أيام الأسبوع فقط"
-        /// }
-        /// ```
-        /// </remarks>
         [HttpPost("slots")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(ApiResponse<AppointmentSlotDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [SwaggerOperation(
             Summary = "[Admin] إضافة موعد متاح في الفرع",
-            Description = "يُنشئ Admin موعداً متاحاً لاستقبال المتبرعين في الفرع. يتطلب دور Admin.",
-            OperationId = "Subscriptions_AddSlot",
             Tags = new[] { "Subscriptions — Admin" })]
-        public async Task<IActionResult> AddSlot(
-            [FromBody] CreateSlotRequest dto, CancellationToken ct)
+        public async Task<IActionResult> AddSlot([FromBody] CreateSlotRequest dto, CancellationToken ct)
             => Ok(await _mediator.Send(new CreateAppointmentSlotCommand(dto), ct));
 
         /// <summary>جلب كل المواعيد (Admin)</summary>
-        /// <remarks>
-        /// يرجع جميع المواعيد بما فيها المنتهية والممتلئة.
-        ///
-        /// **الفرق عن GET /available-slots:**
-        /// - `available-slots`: للمتبرع — يرجع فقط المستقبلية + غير الممتلئة
-        /// - `slots` (هذا الـ endpoint): للـ Admin — يرجع كل المواعيد
-        /// </remarks>
-        [HttpGet("slots")]
+        [HttpGet("slots/admin")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<AppointmentSlotDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [SwaggerOperation(
             Summary = "[Admin] جلب كل المواعيد",
-            Description = "يرجع جميع مواعيد الفرع بما فيها المنتهية. للـ Admin فقط.",
-            OperationId = "Subscriptions_GetAllSlots",
             Tags = new[] { "Subscriptions — Admin" })]
         public async Task<IActionResult> GetAllSlots(CancellationToken ct)
             => Ok(await _mediator.Send(new GetAvailableSlotsQuery(), ct));
+    }
     }
 
     // =====================================================
@@ -485,4 +316,3 @@ namespace BackEnd.Api.Controllers
         /// <summary>سبب الرفض — يظهر للمتبرع (مطلوب)</summary>
         string Reason
     );
-}

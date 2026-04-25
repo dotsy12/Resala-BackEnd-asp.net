@@ -15,22 +15,27 @@ namespace BackEnd.Api.Filters
             if (context.Result is ObjectResult objectResult &&
                 objectResult.Value is IResult result)
             {
-                context.Result = CreateActionResult(result);
+                context.Result = CreateActionResult(result, objectResult.StatusCode);
             }
 
             await next();
         }
 
-        private IActionResult CreateActionResult(IResult result)
+        private IActionResult CreateActionResult(IResult result, int? currentStatusCode)
         {
             if (result.IsSuccess)
             {
-                return new OkObjectResult(
-                    ApiResponse<object>.Success(result.Value, HttpStatusCode.OK)
-                );
+                var statusCode = currentStatusCode ?? (int)HttpStatusCode.OK;
+                if (statusCode < 200 || statusCode > 299) statusCode = (int)HttpStatusCode.OK;
+
+                return new ObjectResult(
+                    ApiResponse<object>.Success(result.Value, (HttpStatusCode)statusCode, result.Message))
+                {
+                    StatusCode = statusCode
+                };
             }
 
-            var statusCode = result.ErrorType switch
+            var errorStatusCode = result.ErrorType switch
             {
                 ErrorType.NotFound => HttpStatusCode.NotFound,
                 ErrorType.BadRequest => HttpStatusCode.BadRequest,
@@ -42,9 +47,9 @@ namespace BackEnd.Api.Filters
             };
 
             return new ObjectResult(
-                ApiResponse<object>.Fail(result.Message, statusCode))
+                ApiResponse<object>.Fail(result.Message, errorStatusCode))
             {
-                StatusCode = (int)statusCode
+                StatusCode = (int)errorStatusCode
             };
         }
     }

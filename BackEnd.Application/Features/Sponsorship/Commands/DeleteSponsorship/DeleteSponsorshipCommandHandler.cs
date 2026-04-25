@@ -30,36 +30,48 @@ namespace BackEnd.Application.Features.Sponsorship.Commands.DeleteSponsorship
         {
             _logger.LogInformation("بدء حذف برنامج كفالة - Id={Id}", request.Id);
 
-            var sponsorship = await _repository.GetByIdAsync(request.Id, cancellationToken);
+            // ✅ FIX: استخدام GetByIdTrackedAsync لضمان Tracking
+            var sponsorship = await _repository.GetByIdTrackedAsync(request.Id, cancellationToken);
 
             if (sponsorship is null)
             {
                 _logger.LogWarning("محاولة حذف برنامج كفالة غير موجود - Id={Id}", request.Id);
-
-                return Result<bool>.Failure(
-                    "برنامج الكفالة غير موجود",
-                    ErrorType.NotFound
-                );
+                return Result<bool>.Failure("برنامج الكفالة غير موجود", ErrorType.NotFound);
             }
 
+            // ✅ حذف الصورة الرئيسية من Cloudinary
             if (!string.IsNullOrWhiteSpace(sponsorship.ImagePublicId))
             {
-                await _fileUploadService.DeleteAsync(
-                    sponsorship.ImagePublicId,
-                    cancellationToken);
+                var deleteImageResult = await _fileUploadService.DeleteAsync(
+                    sponsorship.ImagePublicId, cancellationToken);
+
+                if (!deleteImageResult.IsSuccess)
+                {
+                    _logger.LogWarning(
+                        "فشل حذف صورة الكفالة من Cloudinary: {PublicId} — {Message}",
+                        sponsorship.ImagePublicId, deleteImageResult.Message);
+                    // لا نوقف العملية — ملاحظة فقط
+                }
             }
 
+            // ✅ حذف الأيقونة من Cloudinary
             if (!string.IsNullOrWhiteSpace(sponsorship.IconPublicId))
             {
-                await _fileUploadService.DeleteAsync(
-                    sponsorship.IconPublicId,
-                    cancellationToken);
+                var deleteIconResult = await _fileUploadService.DeleteAsync(
+                    sponsorship.IconPublicId, cancellationToken);
+
+                if (!deleteIconResult.IsSuccess)
+                {
+                    _logger.LogWarning(
+                        "فشل حذف أيقونة الكفالة من Cloudinary: {PublicId} — {Message}",
+                        sponsorship.IconPublicId, deleteIconResult.Message);
+                }
             }
 
+            // ✅ حذف من DB — الـ entity tracked الآن
             await _repository.DeleteAsync(sponsorship, cancellationToken);
 
             _logger.LogInformation("تم حذف برنامج الكفالة بنجاح - Id={Id}", request.Id);
-
             return Result<bool>.Success(true, "تم حذف برنامج الكفالة بنجاح.");
         }
     }

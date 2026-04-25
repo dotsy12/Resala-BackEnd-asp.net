@@ -196,22 +196,23 @@ namespace BackEnd.API.Controllers
         /// <response code="404">الحالة غير موجودة</response>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [SwaggerOperation(
             Summary = "[Admin] حذف حالة حرجة",
-            Description = "حذف حالة حرجة من النظام — يتطلب Admin",
+            Description = "حذف (تعطيل) حالة حرجة من النظام — يتطلب Admin. " +
+                          "لا يمكن حذف حالة لديها تبرعات.",
             OperationId = "EmergencyCases_Delete",
             Tags = new[] { "EmergencyCases — Admin" }
         )]
-        public async Task<IActionResult> Delete(
-            int id,
-            CancellationToken cancellationToken)
+        public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
         {
-            await _mediator.Send(new DeleteEmergencyCaseCommand(id), cancellationToken);
-            return NoContent();
+            // ✅ FIX: نُعيد النتيجة — ResultActionFilter يتولى الـ status code
+            var result = await _mediator.Send(new DeleteEmergencyCaseCommand(id), cancellationToken);
+            return Ok(result);
         }
     }
 

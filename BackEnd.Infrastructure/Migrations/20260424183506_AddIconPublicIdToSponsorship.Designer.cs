@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Persistence.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BackEnd.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260424183506_AddIconPublicIdToSponsorship")]
+    partial class AddIconPublicIdToSponsorship
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -74,9 +77,6 @@ namespace BackEnd.Infrastructure.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
-                    b.Property<string>("Address")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
@@ -93,9 +93,6 @@ namespace BackEnd.Infrastructure.Migrations
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Governorate")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
@@ -132,9 +129,6 @@ namespace BackEnd.Infrastructure.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("ProfileImagePath")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ProfileImagePublicId")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SecurityStamp")
@@ -178,7 +172,7 @@ namespace BackEnd.Infrastructure.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@RESALA.ORG",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEIW8lWqrJjfmgCRfamYY5TcFLxLdYDR6r66605bPgdixbtb88ip66Ujq269VqjZ76w==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEOUzgdDNUhw1MxOSGFufHgfVuuc2u30rWJ/OpqVf14/xa9vaHe2SYq/iiKlfixfpPQ==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "admin-security",
                             TwoFactorEnabled = false,
@@ -347,44 +341,25 @@ namespace BackEnd.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Governorate")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("UpdatedOn")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name", "Governorate", "City")
-                        .IsUnique()
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.ToTable("DeliveryAreas", (string)null);
+                    b.ToTable("DeliveryAreas");
                 });
 
             modelBuilder.Entity("BackEnd.Domain.Entities.Notification.Notification", b =>
@@ -619,8 +594,6 @@ namespace BackEnd.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("SubscriptionId");
 
                     b.ToTable("PaymentRequests", (string)null);
                 });
@@ -1053,7 +1026,7 @@ namespace BackEnd.Infrastructure.Migrations
                     b.HasOne("BackEnd.Domain.Entities.Identity.ApplicationUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.OwnsOne("BackEnd.Domain.ValueObjects.EmailAddress", "Email", b1 =>
@@ -1201,11 +1174,6 @@ namespace BackEnd.Infrastructure.Migrations
 
             modelBuilder.Entity("BackEnd.Domain.Entities.Payment.PaymentRequest", b =>
                 {
-                    b.HasOne("BackEnd.Domain.Entities.Sponsorship.SponsorshipSubscription", "Subscription")
-                        .WithMany()
-                        .HasForeignKey("SubscriptionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.OwnsOne("BackEnd.Domain.ValueObjects.Money", "Amount", b1 =>
                         {
                             b1.Property<int>("PaymentRequestId")
@@ -1315,8 +1283,6 @@ namespace BackEnd.Infrastructure.Migrations
                     b.Navigation("BranchDetails");
 
                     b.Navigation("RepresentativeInfo");
-
-                    b.Navigation("Subscription");
                 });
 
             modelBuilder.Entity("BackEnd.Domain.Entities.Sponsorship.Sponsorship", b =>

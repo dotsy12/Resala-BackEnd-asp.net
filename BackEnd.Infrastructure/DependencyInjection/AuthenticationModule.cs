@@ -53,6 +53,9 @@ namespace BackEnd.Infrastructure.AllInfrastructureDependencies
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = jwtSettings.Issuer,
                     ValidAudience = jwtSettings.Audience,
+                    // ✅ Allow both potential issuers/audiences if they differ between environments
+                    ValidIssuers = new[] { jwtSettings.Issuer, "ResalaAPI", "http://resala.runasp.net" },
+                    ValidAudiences = new[] { jwtSettings.Audience, "ResalaClients" },
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key)),
                     ClockSkew = TimeSpan.Zero 
                 };

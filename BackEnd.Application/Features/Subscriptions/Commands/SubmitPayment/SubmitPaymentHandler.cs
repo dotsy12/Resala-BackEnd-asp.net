@@ -167,13 +167,15 @@ namespace BackEnd.Application.Features.Subscriptions.Commands.SubmitPayment
                 paymentRequest.Id, paymentRequest.Method);
 
             return Result<PaymentRequestSummaryDto>.Success(
-                MapToDto(paymentRequest, dto),
-                "تم استلام طلب الدفع بنجاح. سيتم مراجعته من قِبل الفريق.");
+               MapToDto(paymentRequest),
+               "تم استلام طلب الدفع بنجاح. سيتم مراجعته من قِبل الفريق.");
         }
 
-        private static PaymentRequestSummaryDto MapToDto(
-            PaymentRequest p, SubmitPaymentDto dto) => new(
+        private static PaymentRequestSummaryDto MapToDto(PaymentRequest p) => new(
             Id: p.Id,
+            SubscriptionId: p.SubscriptionId,           // ✅ أُضيف
+            UserName: null,                        // ✅ أُضيف — null عند الإنشاء (لا navigation بعد)
+            Phone: null,                        // ✅ أُضيف — null عند الإنشاء
             Method: p.Method.ToString(),
             Status: p.Status.ToString(),
             Amount: p.Amount.Amount,
@@ -182,7 +184,7 @@ namespace BackEnd.Application.Features.Subscriptions.Commands.SubmitPayment
             SenderPhoneNumber: p.SenderPhoneNumber,
             ContactName: p.RepresentativeInfo?.ContactName,
             ContactPhone: p.RepresentativeInfo?.ContactPhone
-                         ?? p.BranchDetails?.ContactNumber,
+                                   ?? p.BranchDetails?.ContactNumber,
             ScheduledDate: p.BranchDetails?.ScheduledDate,
             RejectionReason: null,
             CreatedOn: p.CreatedOn

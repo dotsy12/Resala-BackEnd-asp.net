@@ -1,4 +1,3 @@
-﻿// GetDeliveryAreasQuery.cs + Handler
 using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Dtos.Subscription;
 using BackEnd.Application.Interfaces.Repositories;
@@ -17,7 +16,12 @@ namespace BackEnd.Application.Features.Subscriptions.Queries.GetDeliveryAreas
         {
             var areas = await _repo.GetAllActiveAsync(ct);
             var result = areas
-                .Select(a => new DeliveryAreaDto(a.Id, a.Name))
+                .Select(a => new DeliveryAreaDto(
+                    a.Id, 
+                    a.Name, 
+                    a.Governorate, 
+                    a.City, 
+                    a.IsActive))
                 .ToList().AsReadOnly();
 
             return Result<IReadOnlyList<DeliveryAreaDto>>.Success(result);

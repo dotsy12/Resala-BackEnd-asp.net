@@ -26,6 +26,11 @@ namespace BackEnd.Infrastructure.Persistence.Configurations
             {
                 p.Property(x => x.Value).HasColumnName("PhoneNumber").HasMaxLength(20);
             });
+
+            builder.HasOne(x => x.User)
+                   .WithMany()
+                   .HasForeignKey(x => x.UserId)
+                   .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

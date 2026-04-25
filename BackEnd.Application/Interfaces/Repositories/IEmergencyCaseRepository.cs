@@ -14,6 +14,9 @@ namespace BackEnd.Application.Interfaces.Repositories
 
         Task<EmergencyCase?> GetByIdAsync(int id, CancellationToken cancellationToken);
 
+        // ✅ للكتابة (Update/Delete) — بدون AsNoTracking
+        Task<EmergencyCase?> GetByIdTrackedAsync(int id, CancellationToken cancellationToken);
+
         Task<IEnumerable<EmergencyCase>> GetAllAsync(CancellationToken cancellationToken);
 
         Task UpdateAsync(EmergencyCase entity, CancellationToken cancellationToken);

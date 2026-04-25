@@ -1,5 +1,5 @@
 using BackEnd.Domain.Common;
-using BackEnd.Domain.Entities.Identity;
+using BackEnd.Domain.Entities.Sponsorship;
 using BackEnd.Domain.Enums;
 using BackEnd.Domain.Events;
 using BackEnd.Domain.Exceptions;
@@ -11,6 +11,7 @@ namespace BackEnd.Domain.Entities.Payment
     public sealed class PaymentRequest : BaseEntity<int>, IAggregateRoot
     {
         public int? SubscriptionId { get; private set; }
+        public SponsorshipSubscription? Subscription { get; private set; }
         public int? GeneralDonationId { get; private set; }
         public Money Amount { get; private set; } = null!;
         public PaymentMethod Method { get; private set; }
