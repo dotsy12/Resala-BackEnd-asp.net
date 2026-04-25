@@ -4,6 +4,8 @@ using BackEnd.Application.Features.InKindDonation.Commands.UpdateInKindDonation;
 using BackEnd.Application.Features.InKindDonation.Queries.GetAllInKindDonationsQuery;
 using BackEnd.Application.Features.InKindDonation.Queries.GetDonorInKindDonationsQuery;
 using BackEnd.Application.Features.InKindDonation.Queries.GetInKindDonationByIdQuery;
+using BackEnd.Application.Features.InKindDonation.Queries.GetDonorsLookup;
+using BackEnd.Application.Features.InKindDonation.Queries.GetDonorsDropdown;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -33,6 +35,37 @@ namespace BackEnd.Api.Controllers
             var staffIdClaim = User.FindFirst("staffId")?.Value;
             return int.TryParse(staffIdClaim, out var id) ? id : 0;
         }
+
+        /// <summary>
+        /// [Reception/Admin] جلب قائمة المتبرعين للاختيار منهم
+        /// </summary>
+        [HttpGet("donors")]
+        [SwaggerOperation(
+            Summary = "[Reception/Admin] جلب قائمة المتبرعين",
+            Description = "يُستخدم للبحث عن متبرع واختياره عند تسجيل تبرع عيني جديد.",
+            OperationId = "InKindDonations_GetDonors",
+            Tags = new[] { "InKindDonations — Staff" }
+        )]
+        public async Task<IActionResult> GetDonors(
+            [FromQuery] string? search,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20,
+            CancellationToken ct = default)
+            => Ok(await _mediator.Send(new GetDonorsLookupQuery(search, pageNumber, pageSize), ct));
+
+        /// <summary>
+        /// [Reception/Admin] جلب قائمة مختصرة للمتبرعين (Dropdown)
+        /// </summary>
+        [HttpGet("donors/dropdown")]
+        [SwaggerOperation(
+            Summary = "[Reception/Admin] قائمة المتبرعين المختصرة",
+            OperationId = "InKindDonations_GetDonorsDropdown",
+            Tags = new[] { "InKindDonations — Staff" }
+        )]
+        public async Task<IActionResult> GetDonorsDropdown(
+            [FromQuery] string? search,
+            CancellationToken ct = default)
+            => Ok(await _mediator.Send(new GetDonorsDropdownQuery(search), ct));
 
         // ═══════════════════════════════════════════════════
         //  1. RECORD — تسجيل تبرع عيني جديد

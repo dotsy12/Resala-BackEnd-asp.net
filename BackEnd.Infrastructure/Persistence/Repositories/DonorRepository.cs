@@ -29,6 +29,50 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
                 .Include(d => d.User)
                 .FirstOrDefaultAsync(d => d.UserId == userId, ct);
 
+        public async Task<(IReadOnlyList<Donor> Items, int TotalCount)> GetPagedAsync(
+            string? search, int pageNumber, int pageSize, CancellationToken ct = default)
+        {
+            var query = _db.Donors
+                .Include(d => d.User)
+                .AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.Trim();
+                query = query.Where(d =>
+                    EF.Functions.Like(d.FullName.FirstName + " " + d.FullName.LastName, $"%{search}%") ||
+                    EF.Functions.Like(d.PhoneNumber.Value, $"%{search}%") ||
+                    EF.Functions.Like(d.Email.Value, $"%{search}%"));
+            }
+
+            var totalCount = await query.CountAsync(ct);
+            var items = await query
+                .OrderByDescending(d => d.Id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
+
+            return (items, totalCount);
+        }
+
+        public async Task<IReadOnlyList<Donor>> GetDropdownAsync(string? search, int count = 20, CancellationToken ct = default)
+        {
+            var query = _db.Donors.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.Trim();
+                query = query.Where(d =>
+                    EF.Functions.Like(d.FullName.FirstName + " " + d.FullName.LastName, $"%{search}%") ||
+                    EF.Functions.Like(d.PhoneNumber.Value, $"%{search}%"));
+            }
+
+            return await query
+                .OrderByDescending(d => d.Id)
+                .Take(count)
+                .ToListAsync(ct);
+        }
+
         public Task SaveChangesAsync(CancellationToken ct = default)
             => _db.SaveChangesAsync(ct);
     }
