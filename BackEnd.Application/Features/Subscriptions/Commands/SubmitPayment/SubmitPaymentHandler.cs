@@ -85,7 +85,9 @@ namespace BackEnd.Application.Features.Subscriptions.Commands.SubmitPayment
                                 uploadResult.Message, ErrorType.InternalServerError);
 
                         paymentRequest = PaymentRequest.CreateElectronic(
+                            donorId: request.DonorId,
                             subscriptionId: subscription.Id,
+                            emergencyCaseId: null,
                             generalDonationId: null,
                             amount: amount,
                             method: dto.PaymentMethod,
@@ -114,7 +116,9 @@ namespace BackEnd.Application.Features.Subscriptions.Commands.SubmitPayment
                         );
 
                         paymentRequest = PaymentRequest.CreateRepresentative(
+                            donorId: request.DonorId,
                             subscriptionId: subscription.Id,
+                            emergencyCaseId: null,
                             generalDonationId: null,
                             amount: amount,
                             repDetails: repDetails
@@ -146,7 +150,9 @@ namespace BackEnd.Application.Features.Subscriptions.Commands.SubmitPayment
                         );
 
                         paymentRequest = PaymentRequest.CreateBranch(
+                            donorId: request.DonorId,
                             subscriptionId: subscription.Id,
+                            emergencyCaseId: null,
                             generalDonationId: null,
                             amount: amount,
                             branchDetails: branchDetails
@@ -173,9 +179,11 @@ namespace BackEnd.Application.Features.Subscriptions.Commands.SubmitPayment
 
         private static PaymentRequestSummaryDto MapToDto(PaymentRequest p) => new(
             Id: p.Id,
-            SubscriptionId: p.SubscriptionId,           // ✅ أُضيف
-            UserName: null,                        // ✅ أُضيف — null عند الإنشاء (لا navigation بعد)
-            Phone: null,                        // ✅ أُضيف — null عند الإنشاء
+            SubscriptionId: p.SubscriptionId,
+            EmergencyCaseId: p.EmergencyCaseId,
+            EmergencyCaseTitle: p.EmergencyCase?.Title,
+            UserName: null, 
+            Phone: null,
             Method: p.Method.ToString(),
             Status: p.Status.ToString(),
             Amount: p.Amount.Amount,
@@ -183,8 +191,11 @@ namespace BackEnd.Application.Features.Subscriptions.Commands.SubmitPayment
             ReceiptImagePublicId: p.ReceiptImagePublicId,
             SenderPhoneNumber: p.SenderPhoneNumber,
             ContactName: p.RepresentativeInfo?.ContactName,
-            ContactPhone: p.RepresentativeInfo?.ContactPhone
-                                   ?? p.BranchDetails?.ContactNumber,
+            ContactPhone: p.RepresentativeInfo?.ContactPhone ?? p.BranchDetails?.ContactNumber,
+            Address: p.RepresentativeInfo?.Address,
+            RepresentativeNotes: p.RepresentativeInfo?.Notes,
+            DeliveryAreaId: p.RepresentativeInfo?.DeliveryAreaId,
+            DeliveryAreaName: p.RepresentativeInfo?.DeliveryAreaName,
             ScheduledDate: p.BranchDetails?.ScheduledDate,
             RejectionReason: null,
             CreatedOn: p.CreatedOn

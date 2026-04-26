@@ -46,6 +46,7 @@ namespace BackEnd.Infrastructure.InfrastructureDependencies
             services.AddScoped<IPaymentRequestRepository, PaymentRequestRepository>();
             services.AddScoped<IDeliveryAreaRepository, DeliveryAreaRepository>();
             services.AddScoped<IAppointmentSlotRepository, AppointmentSlotRepository>();
+            services.AddScoped<INotificationRepository, NotificationRepository>();
 
 
             // أضف كمان

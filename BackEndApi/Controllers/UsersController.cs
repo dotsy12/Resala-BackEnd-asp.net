@@ -3,6 +3,8 @@ using BackEnd.Application.Dtos.User;
 using BackEnd.Application.Features.Users.Commands.UpdateProfile;
 using BackEnd.Application.Features.Users.Commands.UpdateProfileImage;
 using BackEnd.Application.Features.Users.Queries.GetProfile;
+using BackEnd.Application.Features.Users.Queries.GetEmergencyContributions;
+using BackEnd.Application.Features.Users.Queries.GetEmergencyCaseContributionDetail;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,7 +30,7 @@ namespace BackEnd.Api.Controllers
 
         /// <summary>جلب بيانات الملف الشخصي</summary>
         /// <remarks>
-        /// يرجع بيانات المتبرع الحالي مع إحصائيات الاشتراكات والمدفوعات.
+        /// يرجع بيانات المتبرع الحالي مع إحصائيات الاشتراكات والمدفوعات وإجمالي تبرعات حالات الطوارئ.
         /// </remarks>
         [HttpGet("profile")]
         [Authorize(Roles = "Donor")]
@@ -38,6 +40,27 @@ namespace BackEnd.Api.Controllers
             Tags = new[] { "Users — Profile" })]
         public async Task<IActionResult> GetProfile(CancellationToken ct)
             => Ok(await _mediator.Send(new GetProfileQuery(GetUserId()), ct));
+
+        /// <summary>جلب تاريخ تبرعات حالات الطوارئ</summary>
+        [HttpGet("emergency-contributions")]
+        [Authorize(Roles = "Donor")]
+        [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<EmergencyContributionDto>>), StatusCodes.Status200OK)]
+        [SwaggerOperation(
+            Summary = "[Donor] تاريخ تبرعات حالات الطوارئ",
+            Tags = new[] { "Users — Profile" })]
+        public async Task<IActionResult> GetEmergencyContributions(CancellationToken ct)
+            => Ok(await _mediator.Send(new GetDonorEmergencyContributionsQuery(GetUserId()), ct));
+
+        /// <summary>جلب تفاصيل تبرعات المستخدم لحالة طوارئ معينة</summary>
+        [HttpGet("emergency-cases/{emergencyCaseId:int}")]
+        [Authorize(Roles = "Donor")]
+        [ProducesResponseType(typeof(ApiResponse<UserEmergencyCaseDetailsDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [SwaggerOperation(
+            Summary = "[Donor] تفاصيل تبرعات الحالة",
+            Tags = new[] { "Users — Profile" })]
+        public async Task<IActionResult> GetEmergencyCaseContributionDetail(int emergencyCaseId, CancellationToken ct)
+            => Ok(await _mediator.Send(new GetEmergencyCaseContributionDetailQuery(GetUserId(), emergencyCaseId), ct));
 
         /// <summary>تحديث بيانات الملف الشخصي</summary>
         [HttpPut("profile")]

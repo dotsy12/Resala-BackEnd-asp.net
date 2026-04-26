@@ -13,6 +13,7 @@ namespace BackEnd.Domain.Events
         int PaymentRequestId,
         int? SubscriptionId,
         int? GeneralDonationId,
+        int? EmergencyCaseId,
         decimal Amount,
         int VerifiedByStaffId)
         : IDomainEvent

@@ -44,6 +44,16 @@ namespace BackEnd.Infrastructure.Persistence.Configurations
                    .WithMany()
                    .HasForeignKey(x => x.SubscriptionId)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.EmergencyCase)
+                   .WithMany()
+                   .HasForeignKey(x => x.EmergencyCaseId)
+                   .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.Donor)
+                   .WithMany()
+                   .HasForeignKey(x => x.DonorId)
+                   .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

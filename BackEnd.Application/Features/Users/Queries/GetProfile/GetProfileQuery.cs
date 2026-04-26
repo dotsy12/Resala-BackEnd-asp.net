@@ -33,12 +33,27 @@ namespace BackEnd.Application.Features.Users.Queries.GetProfile
             var subs = await _subRepo.GetByDonorIdAsync(donor.Id, ct);
             var activeSubsCount = subs.Count(s => s.Status == SubscriptionStatus.Active);
             
-            int totalPaymentsCount = 0;
-            foreach (var sub in subs)
-            {
-                var payments = await _paymentRepo.GetBySubscriptionIdAsync(sub.Id, ct);
-                totalPaymentsCount += payments.Count(p => p.Status == PaymentStatus.Verified);
-            }
+            var allPayments = await _paymentRepo.GetByDonorIdAsync(donor.Id, ct);
+            var verifiedPayments = allPayments.Where(p => p.Status == PaymentStatus.Verified).ToList();
+            
+            var subscriptionPaymentsCount = verifiedPayments.Count(p => p.TargetType == PaymentTargetType.Subscription);
+
+            var emergencyPayments = verifiedPayments.Where(p => p.TargetType == PaymentTargetType.EmergencyCase).ToList();
+            var totalEmergencyAmount = emergencyPayments.Sum(p => p.Amount.Amount);
+            var emergencyCasesCount = emergencyPayments.Select(p => p.EmergencyCaseId).Distinct().Count();
+
+            var recentContributions = emergencyPayments
+                .OrderByDescending(p => p.CreatedOn)
+                .Take(5)
+                .Select(p => new EmergencyContributionDto(
+                    PaymentId: p.Id,
+                    EmergencyCaseId: p.EmergencyCaseId ?? 0,
+                    CaseTitle: p.EmergencyCase?.Title ?? "حالة طوارئ",
+                    Amount: p.Amount.Amount,
+                    PaymentStatus: p.Status.ToString(),
+                    PaymentMethod: p.Method.ToString(),
+                    PaymentDate: p.CreatedOn
+                )).ToList();
 
             var dto = new UserProfileDto(
                 Id: donor.User.Id,
@@ -50,7 +65,10 @@ namespace BackEnd.Application.Features.Users.Queries.GetProfile
                 ProfileImageUrl: donor.User.ProfileImagePath,
                 CreatedAt: donor.User.CreatedOn,
                 ActiveSubscriptionsCount: activeSubsCount,
-                TotalPaymentsCount: totalPaymentsCount
+                TotalPaymentsCount: verifiedPayments.Count,
+                TotalEmergencyDonationsAmount: totalEmergencyAmount,
+                EmergencyCasesCount: emergencyCasesCount,
+                EmergencyContributions: recentContributions
             );
 
             return Result<UserProfileDto>.Success(dto);

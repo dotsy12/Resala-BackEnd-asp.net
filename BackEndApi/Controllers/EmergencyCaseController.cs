@@ -1,8 +1,15 @@
 using BackEnd.Application.Features.EmergencyCase.Commands.CreateEmergencyCase;
 using BackEnd.Application.Features.EmergencyCase.Commands.DeleteEmergencyCase;
 using BackEnd.Application.Features.EmergencyCase.Commands.UpdateEmergencyCase;
+using BackEnd.Application.Features.EmergencyCase.Commands.DonateToEmergencyCase;
 using BackEnd.Application.Features.EmergencyCase.Queries.GetAllEmergenciesCasies;
 using BackEnd.Application.Features.EmergencyCase.Queries.GetEmergencyCaseById;
+using BackEnd.Application.Features.EmergencyCase.Queries.GetPendingEmergencyCasePayments;
+using BackEnd.Application.Features.Subscriptions.Commands.VerifyPayment;
+using BackEnd.Application.Features.Subscriptions.Commands.RejectPayment;
+using BackEnd.Application.Dtos.Subscription;
+using BackEnd.Application.Dtos.EmergencyCase;
+using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.ViewModles;
 using BackEnd.Domain.Enums;
 using MediatR;
@@ -24,212 +31,210 @@ namespace BackEnd.API.Controllers
         public EmergencyCasesController(IMediator mediator)
             => _mediator = mediator;
 
+        /// <summary>يستخرج donorId من JWT Claims</summary>
+        private int GetDonorId() =>
+            int.TryParse(User.FindFirst("donorId")?.Value, out var id) ? id : 0;
+
+        /// <summary>يستخرج staffId من JWT Claims</summary>
+        private int GetStaffId() =>
+            int.TryParse(User.FindFirst("staffId")?.Value, out var id) ? id : 0;
+
         // ═══════════════════════════════════════════════════
-        //  1. CREATE
+        //  1. DONOR FLOW — التبرع المباشر
         // ═══════════════════════════════════════════════════
 
         /// <summary>
-        /// [Admin] إنشاء حالة حرجة جديدة
+        /// [Donor] تبرع مباشر لحالة طوارئ (Deprecated)
         /// </summary>
         /// <remarks>
-        /// يُنشئ حالة حرجة جديدة في النظام.
-        ///
-        /// **⚠️ يتطلب Bearer Token بدور Admin**
-        ///
-        /// **Request Example:**
-        /// ```json
-        /// {
-        ///   "title": "عملية عاجلة",
-        ///   "description": "مريض يحتاج عملية فورًا",
-        ///   "targetAmount": 50000
-        /// }
-        /// ```
-        ///
-        /// **Success Response (201):**
-        /// ```json
-        /// {
-        ///   "id": 1,
-        ///   "title": "عملية عاجلة",
-        ///   "description": "مريض يحتاج عملية فورًا",
-        ///   "targetAmount": 50000,
-        ///   "collectedAmount": 0,
-        ///   "createdOn": "2026-03-25T00:00:00"
-        /// }
-        /// ```
+        /// يُنصح باستخدام النقاط المتخصصة الجديدة:
+        /// - `/donate/electronic`
+        /// - `/donate/representative`
+        /// - `/donate/branch`
         /// </remarks>
+        [HttpPost("{id:int}/donate")]
+        [Authorize(Roles = "Donor")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyDonationResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [SwaggerOperation(
+            Summary = "[Donor] تبرع مباشر لحالة طوارئ (قديم)",
+            Tags = new[] { "EmergencyCases — Donor" }
+        )]
+        [Obsolete("استخدم النقاط المتخصصة الجديدة /donate/electronic أو /donate/representative أو /donate/branch")]
+        public async Task<IActionResult> Donate(int id, [FromForm] SubmitPaymentDto dto, CancellationToken ct)
+        {
+            var donorId = GetDonorId();
+            if (donorId == 0) return Unauthorized();
+
+            return Ok(await _mediator.Send(new DonateToEmergencyCaseCommand(id, donorId, dto), ct));
+        }
+
+        /// <summary>
+        /// [Donor] تبرع إلكتروني (فودافون كاش / إنستا باي)
+        /// </summary>
+        [HttpPost("{id:int}/donate/electronic")]
+        [Authorize(Roles = "Donor")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyDonationResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [SwaggerOperation(
+            Summary = "[Donor] تبرع إلكتروني لحالة طوارئ",
+            Description = "يدعم VodafoneCash (1) و InstaPay (2). يتطلب رفع صورة الإيصال ورقم الهاتف.",
+            Tags = new[] { "EmergencyCases — Donor" }
+        )]
+        public async Task<IActionResult> DonateElectronic(int id, [FromForm] ElectronicEmergencyDonationDto dto, CancellationToken ct)
+        {
+            var donorId = GetDonorId();
+            if (donorId == 0) return Unauthorized();
+
+            return Ok(await _mediator.Send(new DonateElectronicToEmergencyCaseCommand(id, donorId, dto), ct));
+        }
+
+        /// <summary>
+        /// [Donor] تبرع عن طريق مندوب تحصيل
+        /// </summary>
+        [HttpPost("{id:int}/donate/representative")]
+        [Authorize(Roles = "Donor")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyDonationResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [SwaggerOperation(
+            Summary = "[Donor] تبرع عن طريق مندوب",
+            Description = "طلب مندوب للتحصيل من العنوان المذكور.",
+            Tags = new[] { "EmergencyCases — Donor" }
+        )]
+        public async Task<IActionResult> DonateRepresentative(int id, [FromBody] RepresentativeEmergencyDonationDto dto, CancellationToken ct)
+        {
+            var donorId = GetDonorId();
+            if (donorId == 0) return Unauthorized();
+
+            return Ok(await _mediator.Send(new DonateRepresentativeToEmergencyCaseCommand(id, donorId, dto), ct));
+        }
+
+        /// <summary>
+        /// [Donor] تبرع في أحد فروع المؤسسة
+        /// </summary>
+        [HttpPost("{id:int}/donate/branch")]
+        [Authorize(Roles = "Donor")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyDonationResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [SwaggerOperation(
+            Summary = "[Donor] تبرع في الفرع",
+            Description = "حجز موعد للتبرع في أحد الفروع.",
+            Tags = new[] { "EmergencyCases — Donor" }
+        )]
+        public async Task<IActionResult> DonateBranch(int id, [FromBody] BranchEmergencyDonationDto dto, CancellationToken ct)
+        {
+            var donorId = GetDonorId();
+            if (donorId == 0) return Unauthorized();
+
+            return Ok(await _mediator.Send(new DonateBranchToEmergencyCaseCommand(id, donorId, dto), ct));
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  2. STAFF FLOW — مراجعة التبرعات
+        // ═══════════════════════════════════════════════════
+
+        /// <summary>جلب تبرعات حالات الطوارئ المعلقة</summary>
+        [HttpGet("payments/pending")]
+        [Authorize(Roles = "Reception,Admin")]
+        [SwaggerOperation(Summary = "[Reception/Admin] كل تبرعات الطوارئ المعلقة", Tags = new[] { "EmergencyCases — Staff" })]
+        public async Task<IActionResult> GetPendingPayments(CancellationToken ct)
+            => Ok(await _mediator.Send(new GetPendingEmergencyCasePaymentsQuery(), ct));
+
+        /// <summary>جلب تبرعات حالات الطوارئ المعلقة (VodafoneCash)</summary>
+        [HttpGet("payments/pending/vodafonecash")]
+        [Authorize(Roles = "Reception,Admin")]
+        [SwaggerOperation(Summary = "[Reception/Admin] تبرعات VodafoneCash المعلقة", Tags = new[] { "EmergencyCases — Staff" })]
+        public async Task<IActionResult> GetPendingVodafoneCash(CancellationToken ct)
+            => Ok(await _mediator.Send(new GetPendingEmergencyCasePaymentsQuery(PaymentMethod.VodafoneCash), ct));
+
+        /// <summary>جلب تبرعات حالات الطوارئ المعلقة (InstaPay)</summary>
+        [HttpGet("payments/pending/instapay")]
+        [Authorize(Roles = "Reception,Admin")]
+        [SwaggerOperation(Summary = "[Reception/Admin] تبرعات InstaPay المعلقة", Tags = new[] { "EmergencyCases — Staff" })]
+        public async Task<IActionResult> GetPendingInstaPay(CancellationToken ct)
+            => Ok(await _mediator.Send(new GetPendingEmergencyCasePaymentsQuery(PaymentMethod.InstaPay), ct));
+
+        /// <summary>جلب تبرعات حالات الطوارئ المعلقة (الفرع)</summary>
+        [HttpGet("payments/pending/branch")]
+        [Authorize(Roles = "Reception,Admin")]
+        [SwaggerOperation(Summary = "[Reception/Admin] تبرعات الفرع المعلقة", Tags = new[] { "EmergencyCases — Staff" })]
+        public async Task<IActionResult> GetPendingBranch(CancellationToken ct)
+            => Ok(await _mediator.Send(new GetPendingEmergencyCasePaymentsQuery(PaymentMethod.Branch), ct));
+
+        /// <summary>جلب تبرعات حالات الطوارئ المعلقة (المندوب)</summary>
+        [HttpGet("payments/pending/representative")]
+        [Authorize(Roles = "Reception,Admin")]
+        [SwaggerOperation(Summary = "[Reception/Admin] تبرعات المندوب المعلقة", Tags = new[] { "EmergencyCases — Staff" })]
+        public async Task<IActionResult> GetPendingRepresentative(CancellationToken ct)
+            => Ok(await _mediator.Send(new GetPendingEmergencyCasePaymentsQuery(PaymentMethod.Representative), ct));
+
+        /// <summary>تأكيد تبرع حالة طوارئ</summary>
+        [HttpPost("payments/{paymentId:int}/verify")]
+        [Authorize(Roles = "Reception,Admin")]
+        [SwaggerOperation(Summary = "[Reception/Admin] تأكيد تبرع", Tags = new[] { "EmergencyCases — Staff" })]
+        public async Task<IActionResult> VerifyPayment(int paymentId, CancellationToken ct)
+        {
+            var staffId = GetStaffId();
+            if (staffId == 0) return Unauthorized();
+            return Ok(await _mediator.Send(new VerifyPaymentCommand(paymentId, staffId), ct));
+        }
+
+        /// <summary>رفض تبرع حالة طوارئ</summary>
+        [HttpPost("payments/{paymentId:int}/reject")]
+        [Authorize(Roles = "Reception,Admin")]
+        [SwaggerOperation(Summary = "[Reception/Admin] رفض تبرع", Tags = new[] { "EmergencyCases — Staff" })]
+        public async Task<IActionResult> RejectPayment(int paymentId, [FromBody] RejectPaymentRequest dto, CancellationToken ct)
+        {
+            var staffId = GetStaffId();
+            if (staffId == 0) return Unauthorized();
+            return Ok(await _mediator.Send(new RejectPaymentCommand(paymentId, staffId, dto.Reason), ct));
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  3. ADMIN CRUD
+        // ═══════════════════════════════════════════════════
+
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [Consumes("multipart/form-data")]
-        [ProducesResponseType(typeof(EmergencyCaseViewModel), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [SwaggerOperation(
-            Summary = "[Admin] إنشاء حالة حرجة",
-            Description = "إنشاء حالة حرجة جديدة — يتطلب Admin",
-            OperationId = "EmergencyCases_Create",
-            Tags = new[] { "EmergencyCases — Admin" }
-        )]
-        public async Task<IActionResult> Create(
-    [FromForm] CreateEmergencyCaseRequest request,
-    CancellationToken ct)
+        [SwaggerOperation(Summary = "[Admin] إنشاء حالة حرجة", OperationId = "EmergencyCases_Create", Tags = new[] { "EmergencyCases — Admin" })]
+        public async Task<IActionResult> Create([FromForm] CreateEmergencyCaseRequest request, CancellationToken ct)
         {
-            var cmd = new CreateEmergencyCaseCommand(
-                Title: request.Title,
-                Description: request.Description,
-                UrgencyLevel: request.UrgencyLevel,
-                RequiredAmount: request.RequiredAmount,
-                Attachment: request.Attachment
-            );
-
+            var cmd = new CreateEmergencyCaseCommand(request.Title, request.Description, request.UrgencyLevel, request.RequiredAmount, request.Attachment);
             return Ok(await _mediator.Send(cmd, ct));
         }
 
-        // ═══════════════════════════════════════════════════
-        //  2. GET ALL
-        // ═══════════════════════════════════════════════════
-
-        /// <summary>
-        /// جلب كل الحالات الحرجة
-        /// </summary>
-        /// <remarks>
-        /// يرجع قائمة بكل الحالات الحرجة المسجلة في النظام.
-        /// </remarks>
         [HttpGet]
         [AllowAnonymous]
-        [ProducesResponseType(typeof(IEnumerable<EmergencyCaseViewModel>), StatusCodes.Status200OK)]
-        [SwaggerOperation(
-            Summary = "جلب كل الحالات الحرجة",
-            Description = "عرض جميع الحالات الحرجة المتاحة",
-            OperationId = "EmergencyCases_GetAll",
-            Tags = new[] { "EmergencyCases — Public" }
-        )]
-        public async Task<ActionResult<IEnumerable<EmergencyCaseViewModel>>> GetAll(
-            CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(new GetAllEmergencyCasesQuery(), cancellationToken);
-            return Ok(result);
-        }
+        [SwaggerOperation(Summary = "جلب كل الحالات الحرجة", OperationId = "EmergencyCases_GetAll", Tags = new[] { "EmergencyCases — Public" })]
+        public async Task<ActionResult<IEnumerable<EmergencyCaseViewModel>>> GetAll(CancellationToken ct)
+            => Ok(await _mediator.Send(new GetAllEmergencyCasesQuery(), ct));
 
-        // ═══════════════════════════════════════════════════
-        //  3. GET BY ID
-        // ═══════════════════════════════════════════════════
-
-        /// <summary>
-        /// جلب حالة حرجة بالـ ID
-        /// </summary>
-        /// <param name="id">رقم الحالة الحرجة</param>
-        /// <response code="200">تفاصيل الحالة</response>
-        /// <response code="404">الحالة غير موجودة</response>
         [HttpGet("{id}")]
         [AllowAnonymous]
-        [ProducesResponseType(typeof(EmergencyCaseViewModel), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [SwaggerOperation(
-            Summary = "جلب حالة حرجة بالـ ID",
-            Description = "عرض تفاصيل حالة حرجة باستخدام المعرف",
-            OperationId = "EmergencyCases_GetById",
-            Tags = new[] { "EmergencyCases — Public" }
-        )]
-        public async Task<ActionResult<EmergencyCaseViewModel>> GetById(
-            int id,
-            CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(new GetEmergencyCaseByIdQuery(id), cancellationToken);
-            return Ok(result);
-        }
+        [SwaggerOperation(Summary = "جلب حالة حرجة بالـ ID", OperationId = "EmergencyCases_GetById", Tags = new[] { "EmergencyCases — Public" })]
+        public async Task<ActionResult<EmergencyCaseViewModel>> GetById(int id, CancellationToken ct)
+            => Ok(await _mediator.Send(new GetEmergencyCaseByIdQuery(id), ct));
 
-        // ═══════════════════════════════════════════════════
-        //  4. UPDATE
-        // ═══════════════════════════════════════════════════
-
-        /// <summary>
-        /// [Admin] تعديل حالة حرجة
-        /// </summary>
-        /// <param name="id">رقم الحالة الحرجة</param>
-        /// <remarks>
-        /// تعديل بيانات حالة حرجة موجودة.
-        ///
-        /// **⚠️ يتطلب Bearer Token بدور Admin**
-        /// </remarks>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         [Consumes("multipart/form-data")]
-        [ProducesResponseType(typeof(EmergencyCaseViewModel), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [SwaggerOperation(
-            Summary = "[Admin] تعديل حالة حرجة",
-            Description = "تعديل بيانات حالة حرجة — يتطلب Admin",
-            OperationId = "EmergencyCases_Update",
-            Tags = new[] { "EmergencyCases — Admin" }
-        )]
-        public async Task<IActionResult> Update(
-    int id,
-    [FromForm] UpdateEmergencyCaseRequest request,
-    CancellationToken ct)
+        [SwaggerOperation(Summary = "[Admin] تعديل حالة حرجة", OperationId = "EmergencyCases_Update", Tags = new[] { "EmergencyCases — Admin" })]
+        public async Task<IActionResult> Update(int id, [FromForm] UpdateEmergencyCaseRequest request, CancellationToken ct)
         {
-            var cmd = new UpdateEmergencyCaseCommand(
-                Id: id,
-                Title: request.Title,
-                Description: request.Description,
-                UrgencyLevel: request.UrgencyLevel,
-                RequiredAmount: request.RequiredAmount,
-                Attachment: request.Attachment,
-                IsActive: request.IsActive
-            );
-
+            var cmd = new UpdateEmergencyCaseCommand(id, request.Title, request.Description, request.UrgencyLevel, request.RequiredAmount, request.Attachment, request.IsActive);
             return Ok(await _mediator.Send(cmd, ct));
         }
 
-        // ═══════════════════════════════════════════════════
-        //  5. DELETE
-        // ═══════════════════════════════════════════════════
-
-        /// <summary>
-        /// [Admin] حذف حالة حرجة
-        /// </summary>
-        /// <param name="id">رقم الحالة الحرجة</param>
-        /// <response code="204">تم الحذف بنجاح</response>
-        /// <response code="404">الحالة غير موجودة</response>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status409Conflict)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [SwaggerOperation(
-            Summary = "[Admin] حذف حالة حرجة",
-            Description = "حذف (تعطيل) حالة حرجة من النظام — يتطلب Admin. " +
-                          "لا يمكن حذف حالة لديها تبرعات.",
-            OperationId = "EmergencyCases_Delete",
-            Tags = new[] { "EmergencyCases — Admin" }
-        )]
-        public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
-        {
-            // ✅ FIX: نُعيد النتيجة — ResultActionFilter يتولى الـ status code
-            var result = await _mediator.Send(new DeleteEmergencyCaseCommand(id), cancellationToken);
-            return Ok(result);
-        }
+        [SwaggerOperation(Summary = "[Admin] حذف حالة حرجة", OperationId = "EmergencyCases_Delete", Tags = new[] { "EmergencyCases — Admin" })]
+        public async Task<IActionResult> Delete(int id, CancellationToken ct)
+            => Ok(await _mediator.Send(new DeleteEmergencyCaseCommand(id), ct));
     }
 
-    public record CreateEmergencyCaseRequest(
-        string Title,
-        string Description,
-        UrgencyLevel UrgencyLevel,
-        decimal RequiredAmount,
-        IFormFile? Attachment
-    );
-
-    public record UpdateEmergencyCaseRequest(
-        string Title,
-        string Description,
-        UrgencyLevel UrgencyLevel,
-        decimal? RequiredAmount,
-        IFormFile? Attachment,
-        bool IsActive
-    );
+    public record CreateEmergencyCaseRequest(string Title, string Description, UrgencyLevel UrgencyLevel, decimal RequiredAmount, IFormFile? Attachment);
+    public record UpdateEmergencyCaseRequest(string Title, string Description, UrgencyLevel UrgencyLevel, decimal? RequiredAmount, IFormFile? Attachment, bool IsActive);
 }

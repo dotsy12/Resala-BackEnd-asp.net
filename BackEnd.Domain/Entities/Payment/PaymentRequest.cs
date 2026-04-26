@@ -1,4 +1,6 @@
 using BackEnd.Domain.Common;
+using BackEnd.Domain.Entities.EmergencyCase;
+using BackEnd.Domain.Entities.Identity;
 using BackEnd.Domain.Entities.Sponsorship;
 using BackEnd.Domain.Enums;
 using BackEnd.Domain.Events;
@@ -10,9 +12,20 @@ namespace BackEnd.Domain.Entities.Payment
 {
     public sealed class PaymentRequest : BaseEntity<int>, IAggregateRoot
     {
+        public int DonorId { get; private set; }
+        public Donor? Donor { get; private set; }
+
+        public PaymentTargetType TargetType { get; private set; }
+        public int? TargetId { get; private set; } // Generic ID to support various targets if needed
+
         public int? SubscriptionId { get; private set; }
         public SponsorshipSubscription? Subscription { get; private set; }
+        
+        public int? EmergencyCaseId { get; private set; }
+        public EmergencyCase.EmergencyCase? EmergencyCase { get; private set; }
+
         public int? GeneralDonationId { get; private set; }
+        
         public Money Amount { get; private set; } = null!;
         public PaymentMethod Method { get; private set; }
         public PaymentStatus Status { get; private set; }
@@ -36,86 +49,80 @@ namespace BackEnd.Domain.Entities.Payment
 
         private PaymentRequest() { }
 
+        private static PaymentRequest CreateBase(
+            int donorId, Money amount, PaymentMethod method,
+            int? subscriptionId = null, int? emergencyCaseId = null, int? generalDonationId = null)
+        {
+            ValidateReference(subscriptionId, emergencyCaseId, generalDonationId);
+
+            var targetType = subscriptionId.HasValue ? PaymentTargetType.Subscription 
+                           : emergencyCaseId.HasValue ? PaymentTargetType.EmergencyCase 
+                           : PaymentTargetType.GeneralDonation;
+
+            return new PaymentRequest
+            {
+                DonorId = donorId,
+                TargetType = targetType,
+                TargetId = subscriptionId ?? emergencyCaseId ?? generalDonationId,
+                SubscriptionId = subscriptionId,
+                EmergencyCaseId = emergencyCaseId,
+                GeneralDonationId = generalDonationId,
+                Amount = amount,
+                Method = method,
+                Status = PaymentStatus.Pending,
+                CreatedOn = DateTime.UtcNow
+            };
+        }
+
         /// <summary>إنشاء طلب دفع إلكتروني (VodafoneCash أو InstaPay)</summary>
         public static PaymentRequest CreateElectronic(
-            int? subscriptionId, int? generalDonationId,
+            int donorId, int? subscriptionId, int? emergencyCaseId, int? generalDonationId,
             Money amount, PaymentMethod method,
             string receiptImageUrl, string receiptImagePublicId, string senderPhoneNumber)
         {
-            ValidateReference(subscriptionId, generalDonationId);
-
             if (method is not (PaymentMethod.VodafoneCash or PaymentMethod.InstaPay))
-                throw new InvalidPaymentRequestException(
-                    "هذا الـ Factory مخصص لـ VodafoneCash أو InstaPay فقط.");
+                throw new InvalidPaymentRequestException("هذا الـ Factory مخصص لـ VodafoneCash أو InstaPay فقط.");
 
             if (string.IsNullOrWhiteSpace(receiptImageUrl))
                 throw new InvalidPaymentRequestException("صورة الإيصال مطلوبة.");
             if (string.IsNullOrWhiteSpace(receiptImagePublicId))
                 throw new InvalidPaymentRequestException("معرّف صورة الإيصال مطلوب.");
-
             if (string.IsNullOrWhiteSpace(senderPhoneNumber))
                 throw new InvalidPaymentRequestException("رقم الهاتف المُحوَّل منه مطلوب.");
 
-            return new PaymentRequest
-            {
-                SubscriptionId = subscriptionId,
-                GeneralDonationId = generalDonationId,
-                Amount = amount,
-                Method = method,
-                Status = PaymentStatus.Pending,
-                ReceiptImageUrl = receiptImageUrl,
-                ReceiptImagePublicId = receiptImagePublicId,
-                SenderPhoneNumber = senderPhoneNumber.Trim(),
-                CreatedOn = DateTime.UtcNow
-            };
+            var payment = CreateBase(donorId, amount, method, subscriptionId, emergencyCaseId, generalDonationId);
+            payment.ReceiptImageUrl = receiptImageUrl;
+            payment.ReceiptImagePublicId = receiptImagePublicId;
+            payment.SenderPhoneNumber = senderPhoneNumber.Trim();
+            
+            return payment;
         }
 
         /// <summary>إنشاء طلب دفع في الفرع</summary>
         public static PaymentRequest CreateBranch(
-            int? subscriptionId, int? generalDonationId,
+            int donorId, int? subscriptionId, int? emergencyCaseId, int? generalDonationId,
             Money amount, BranchPaymentDetails branchDetails)
         {
-            ValidateReference(subscriptionId, generalDonationId);
-
-            return new PaymentRequest
-            {
-                SubscriptionId = subscriptionId,
-                GeneralDonationId = generalDonationId,
-                Amount = amount,
-                Method = PaymentMethod.Branch,
-                Status = PaymentStatus.Pending,
-                BranchDetails = branchDetails
-                    ?? throw new ArgumentNullException(nameof(branchDetails)),
-                CreatedOn = DateTime.UtcNow
-            };
+            var payment = CreateBase(donorId, amount, PaymentMethod.Branch, subscriptionId, emergencyCaseId, generalDonationId);
+            payment.BranchDetails = branchDetails ?? throw new ArgumentNullException(nameof(branchDetails));
+            return payment;
         }
 
         /// <summary>إنشاء طلب مندوب</summary>
         public static PaymentRequest CreateRepresentative(
-            int? subscriptionId, int? generalDonationId,
+            int donorId, int? subscriptionId, int? emergencyCaseId, int? generalDonationId,
             Money amount, RepresentativeDetails repDetails)
         {
-            ValidateReference(subscriptionId, generalDonationId);
-
-            return new PaymentRequest
-            {
-                SubscriptionId = subscriptionId,
-                GeneralDonationId = generalDonationId,
-                Amount = amount,
-                Method = PaymentMethod.Representative,
-                Status = PaymentStatus.Pending,
-                RepresentativeInfo = repDetails
-                    ?? throw new ArgumentNullException(nameof(repDetails)),
-                CreatedOn = DateTime.UtcNow
-            };
+            var payment = CreateBase(donorId, amount, PaymentMethod.Representative, subscriptionId, emergencyCaseId, generalDonationId);
+            payment.RepresentativeInfo = repDetails ?? throw new ArgumentNullException(nameof(repDetails));
+            return payment;
         }
 
         /// <summary>تأكيد الدفع من الـ Staff</summary>
         public void Verify(int staffId)
         {
             if (Status != PaymentStatus.Pending)
-                throw new InvalidPaymentRequestException(
-                    $"لا يمكن تأكيد طلب بحالة '{Status}'.");
+                throw new InvalidPaymentRequestException($"لا يمكن تأكيد طلب بحالة '{Status}'.");
 
             Status = PaymentStatus.Verified;
             VerifiedByStaffId = staffId;
@@ -123,7 +130,7 @@ namespace BackEnd.Domain.Entities.Payment
             UpdatedOn = DateTime.UtcNow;
 
             AddDomainEvent(new PaymentVerifiedEvent(
-                Id, SubscriptionId, GeneralDonationId,
+                Id, SubscriptionId, GeneralDonationId, EmergencyCaseId,
                 Amount.Amount, staffId));
         }
 
@@ -131,8 +138,7 @@ namespace BackEnd.Domain.Entities.Payment
         public void Reject(int staffId, string reason)
         {
             if (Status != PaymentStatus.Pending)
-                throw new InvalidPaymentRequestException(
-                    $"لا يمكن رفض طلب بحالة '{Status}'.");
+                throw new InvalidPaymentRequestException($"لا يمكن رفض طلب بحالة '{Status}'.");
 
             if (string.IsNullOrWhiteSpace(reason))
                 throw new ArgumentException("سبب الرفض مطلوب.");
@@ -141,23 +147,19 @@ namespace BackEnd.Domain.Entities.Payment
             VerifiedByStaffId = staffId;
             RejectionReason = reason.Trim();
             UpdatedOn = DateTime.UtcNow;
+
+            AddDomainEvent(new PaymentRejectedEvent(Id, DonorId, RejectionReason));
         }
 
-        /// <summary>إلغاء الطلب من المتبرع</summary>
-        public void Cancel()
+        private static void ValidateReference(int? subscriptionId, int? emergencyCaseId, int? generalDonationId)
         {
-            if (Status != PaymentStatus.Pending)
-                throw new InvalidPaymentRequestException("يمكن إلغاء الطلبات المعلقة فقط.");
+            int count = 0;
+            if (subscriptionId.HasValue) count++;
+            if (emergencyCaseId.HasValue) count++;
+            if (generalDonationId.HasValue) count++;
 
-            Status = PaymentStatus.Cancelled;
-            UpdatedOn = DateTime.UtcNow;
-        }
-
-        private static void ValidateReference(int? subscriptionId, int? generalDonationId)
-        {
-            if (subscriptionId.HasValue == generalDonationId.HasValue)
-                throw new InvalidPaymentRequestException(
-                    "يجب ربط الطلب باشتراك أو تبرع — وليس الاثنين أو لا شيء.");
+            if (count != 1)
+                throw new InvalidPaymentRequestException("يجب ربط الطلب بهدف واحد فقط (اشتراك أو حالة طوارئ أو تبرع عام).");
         }
     }
 }

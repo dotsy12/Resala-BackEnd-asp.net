@@ -24,7 +24,7 @@ namespace BackEnd.Application.Features.Subscriptions.Queries.GetPaymentDetails
             if (p == null)
                 return Result<PaymentRequestDetailDto>.Failure("طلب الدفع غير موجود.", ErrorType.NotFound);
 
-            var user = p.Subscription?.Donor?.User;
+            var user = p.Donor?.User ?? p.Subscription?.Donor?.User;
             
             string? verifiedBy = null;
             if (p.VerifiedByStaffId.HasValue)
@@ -39,6 +39,8 @@ namespace BackEnd.Application.Features.Subscriptions.Queries.GetPaymentDetails
             var dto = new PaymentRequestDetailDto(
                 PaymentId: p.Id,
                 SubscriptionId: p.SubscriptionId,
+                EmergencyCaseId: p.EmergencyCaseId,
+                EmergencyCaseTitle: p.EmergencyCase?.Title,
                 UserId: user?.Id ?? "",
                 UserName: user != null ? $"{user.FirstName} {user.LastName}".Trim() : "",
                 Phone: user?.PhoneNumber ?? "",
@@ -48,10 +50,14 @@ namespace BackEnd.Application.Features.Subscriptions.Queries.GetPaymentDetails
                 CreatedAt: p.CreatedOn,
                 ReceiptImageUrl: p.ReceiptImageUrl,
                 ReceiptPublicId: p.ReceiptImagePublicId,
-                Notes: null, // Add Notes field to PaymentRequest entity if desired
+                Notes: p.RepresentativeInfo?.Notes,
                 SenderPhoneNumber: p.SenderPhoneNumber,
                 ScheduledDate: p.BranchDetails?.ScheduledDate,
                 Address: p.RepresentativeInfo?.Address,
+                ContactName: p.RepresentativeInfo?.ContactName,
+                ContactPhone: p.RepresentativeInfo?.ContactPhone,
+                DeliveryAreaId: p.RepresentativeInfo?.DeliveryAreaId,
+                DeliveryAreaName: p.RepresentativeInfo?.DeliveryAreaName,
                 VerifiedBy: verifiedBy,
                 VerifiedAt: p.VerifiedAt,
                 RejectionReason: p.RejectionReason

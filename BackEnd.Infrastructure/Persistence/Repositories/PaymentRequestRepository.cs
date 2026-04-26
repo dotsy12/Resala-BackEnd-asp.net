@@ -19,6 +19,9 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
                 .Include(p => p.Subscription)
                     .ThenInclude(s => s.Donor)
                         .ThenInclude(d => d.User)
+                .Include(p => p.EmergencyCase)
+                .Include(p => p.Donor)
+                    .ThenInclude(d => d.User)
                 .FirstOrDefaultAsync(p => p.Id == id, ct);
 
         public Task<bool> HasPendingPaymentAsync(int subscriptionId, CancellationToken ct = default)
@@ -33,25 +36,69 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
                 .OrderByDescending(p => p.CreatedOn)
                 .ToListAsync(ct);
 
-        public async Task<IReadOnlyList<PaymentRequest>> GetAllPendingAsync(
-            CancellationToken ct = default)
+        public async Task<IReadOnlyList<PaymentRequest>> GetByDonorIdAsync(
+            int donorId, CancellationToken ct = default)
             => await _db.PaymentRequests
-                .Include(p => p.Subscription)
-                    .ThenInclude(s => s.Donor)
-                        .ThenInclude(d => d.User)
-                .Where(p => p.Status == PaymentStatus.Pending)
-                .OrderBy(p => p.CreatedOn)
+                .Where(p => p.DonorId == donorId)
+                .OrderByDescending(p => p.CreatedOn)
                 .ToListAsync(ct);
 
-        public async Task<IReadOnlyList<PaymentRequest>> GetPendingByMethodAsync(
-            PaymentMethod method, CancellationToken ct = default)
+        public async Task<IReadOnlyList<PaymentRequest>> GetEmergencyDonationsByDonorIdAsync(
+            int donorId, CancellationToken ct = default)
             => await _db.PaymentRequests
+                .Include(p => p.EmergencyCase)
+                .Where(p => p.DonorId == donorId && p.TargetType == PaymentTargetType.EmergencyCase)
+                .OrderByDescending(p => p.CreatedOn)
+                .ToListAsync(ct);
+
+        public async Task<IReadOnlyList<PaymentRequest>> GetEmergencyDonationsByDonorAndCaseIdAsync(
+            int donorId, int caseId, CancellationToken ct = default)
+            => await _db.PaymentRequests
+                .Include(p => p.EmergencyCase)
+                .Where(p => p.DonorId == donorId && 
+                            p.EmergencyCaseId == caseId && 
+                            p.TargetType == PaymentTargetType.EmergencyCase)
+                .OrderByDescending(p => p.CreatedOn)
+                .ToListAsync(ct);
+
+        public async Task<IReadOnlyList<PaymentRequest>> GetAllPendingAsync(
+            PaymentTargetType? targetType = null,
+            CancellationToken ct = default)
+        {
+            var query = _db.PaymentRequests
+                .Include(p => p.Donor)
+                    .ThenInclude(d => d.User)
                 .Include(p => p.Subscription)
-                    .ThenInclude(s => s.Donor)
-                        .ThenInclude(d => d.User)
-                .Where(p => p.Method == method && p.Status == PaymentStatus.Pending)
+                .Include(p => p.EmergencyCase)
+                .Where(p => p.Status == PaymentStatus.Pending);
+
+            if (targetType.HasValue)
+                query = query.Where(p => p.TargetType == targetType.Value);
+
+            return await query
                 .OrderBy(p => p.CreatedOn)
                 .ToListAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<PaymentRequest>> GetPendingByMethodAsync(
+            PaymentMethod method,
+            PaymentTargetType? targetType = null,
+            CancellationToken ct = default)
+        {
+            var query = _db.PaymentRequests
+                .Include(p => p.Donor)
+                    .ThenInclude(d => d.User)
+                .Include(p => p.Subscription)
+                .Include(p => p.EmergencyCase)
+                .Where(p => p.Method == method && p.Status == PaymentStatus.Pending);
+
+            if (targetType.HasValue)
+                query = query.Where(p => p.TargetType == targetType.Value);
+
+            return await query
+                .OrderBy(p => p.CreatedOn)
+                .ToListAsync(ct);
+        }
 
         public void Update(PaymentRequest payment) => _db.PaymentRequests.Update(payment);
 

@@ -18,6 +18,8 @@ namespace BackEnd.Application.Dtos.Subscription
     public record PaymentRequestSummaryDto(
         int Id,
         int? SubscriptionId,
+        int? EmergencyCaseId,
+        string? EmergencyCaseTitle,
         string? UserName,
         string? Phone,
         string Method,
@@ -28,6 +30,10 @@ namespace BackEnd.Application.Dtos.Subscription
         string? SenderPhoneNumber,
         string? ContactName,
         string? ContactPhone,
+        string? Address,
+        string? RepresentativeNotes,
+        int? DeliveryAreaId,
+        string? DeliveryAreaName,
         DateTime? ScheduledDate,
         string? RejectionReason,
         DateTime CreatedOn
@@ -36,6 +42,8 @@ namespace BackEnd.Application.Dtos.Subscription
     public record PaymentRequestDetailDto(
         int PaymentId,
         int? SubscriptionId,
+        int? EmergencyCaseId,
+        string? EmergencyCaseTitle,
         string UserId,
         string UserName,
         string Phone,
@@ -51,6 +59,10 @@ namespace BackEnd.Application.Dtos.Subscription
         DateTime? ScheduledDate,
         // Representative
         string? Address,
+        string? ContactName,
+        string? ContactPhone,
+        int? DeliveryAreaId,
+        string? DeliveryAreaName,
         // Staff
         string? VerifiedBy,
         DateTime? VerifiedAt,

@@ -44,6 +44,7 @@ namespace BackEnd.Domain.Enums
     }
 
     public enum PaymentStatus { Pending = 1, Verified = 2, Rejected = 3, Cancelled = 4 }
+    public enum PaymentTargetType { Subscription = 1, EmergencyCase = 2, GeneralDonation = 3 }
     public enum DonationType { General = 1, Emergency = 2 }
 
     public enum NotificationType

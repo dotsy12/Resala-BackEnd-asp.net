@@ -14,7 +14,7 @@ namespace BackEnd.Application.Features.Subscriptions.Queries.GetPendingPayments
         public async Task<Result<IReadOnlyList<PaymentRequestSummaryDto>>> Handle(
             GetPendingPaymentsByMethodQuery request, CancellationToken ct)
         {
-            var payments = await _repo.GetPendingByMethodAsync(request.Method, ct);
+            var payments = await _repo.GetPendingByMethodAsync(request.Method, BackEnd.Domain.Enums.PaymentTargetType.Subscription, ct);
             return Result<IReadOnlyList<PaymentRequestSummaryDto>>
                 .Success(payments.Select(GetPendingPaymentsHandler.MapToDto).ToList().AsReadOnly());
         }
