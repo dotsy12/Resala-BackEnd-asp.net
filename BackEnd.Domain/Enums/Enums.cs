@@ -24,7 +24,8 @@ namespace BackEnd.Domain.Enums
     {
         Monthly = 1,
         Quarterly = 3,
-        SemiAnnual = 6
+        SemiAnnual = 6,
+        Annual = 12
     }
 
     public enum SubscriptionStatus
@@ -55,7 +56,8 @@ namespace BackEnd.Domain.Enums
         Congratulations = 4,
         UrgentSponsorship = 5,
         LowFunding = 6,
-        SubscriptionCreated = 7
+        SubscriptionCreated = 7,
+        PaymentRejected = 8
     }
     public enum PickupRequestStatus
     {

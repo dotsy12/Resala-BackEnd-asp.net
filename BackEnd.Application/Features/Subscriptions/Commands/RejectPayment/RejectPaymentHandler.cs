@@ -37,7 +37,7 @@ namespace BackEnd.Application.Features.Subscriptions.Commands.RejectPayment
             // إرسال إشعار للمتبرع بالرفض
             var notification = BackEnd.Domain.Entities.Notification.Notification.Create(
                 donorId: payment.DonorId,
-                type: NotificationType.PaymentVerified, // استخدام نوع مناسب أو إضافة نوع جديد
+                type: NotificationType.PaymentRejected,
                 title: "تم رفض عملية الدفع",
                 message: $"نعتذر، تم رفض عملية الدفع بمبلغ {payment.Amount.Amount} ج.م. السبب: {request.Reason}",
                 relatedEntityId: payment.Id

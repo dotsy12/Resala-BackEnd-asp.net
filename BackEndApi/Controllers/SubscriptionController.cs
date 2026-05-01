@@ -72,13 +72,15 @@ namespace BackEnd.Api.Controllers
             return Ok(await _mediator.Send(new CreateSubscriptionCommand(donorId, dto), ct));
         }
 
-        /// <summary>تقديم طلب دفع لاشتراك</summary>
+        /// <summary>تقديم طلب دفع لاشتراك (Deprecated)</summary>
         [HttpPost("{id:int}/submit-payment")]
         [Authorize(Roles = "Donor")]
         [Consumes("multipart/form-data")]
         [SwaggerOperation(
-            Summary = "[Donor] تقديم طلب دفع",
+            Summary = "[Donor] تقديم طلب دفع (قديم)",
+            Description = "استخدم النقاط المتخصصة الجديدة /pay/electronic أو /pay/branch أو /pay/representative",
             Tags = new[] { "Subscriptions — Donor" })]
+        [Obsolete("استخدم النقاط المتخصصة الجديدة")]
         public async Task<IActionResult> SubmitPayment(
             int id,
             [FromForm] SubmitPaymentDto dto,
@@ -89,6 +91,49 @@ namespace BackEnd.Api.Controllers
                 return Ok(Result<object>.Failure("لم يتم التعرف على هوية المتبرع.", ErrorType.Unauthorized));
 
             return Ok(await _mediator.Send(new SubmitPaymentCommand(id, donorId, dto), ct));
+        }
+
+        /// <summary>تقديم طلب دفع إلكتروني (فودافون كاش / إنستا باي)</summary>
+        [HttpPost("{id:int}/pay/electronic")]
+        [Authorize(Roles = "Donor")]
+        [Consumes("multipart/form-data")]
+        [SwaggerOperation(
+            Summary = "[Donor] دفع إلكتروني لاشتراك",
+            Tags = new[] { "Subscriptions — Donor" })]
+        public async Task<IActionResult> PayElectronic(
+            int id, [FromForm] BackEnd.Application.Dtos.EmergencyCase.ElectronicEmergencyDonationDto dto, CancellationToken ct)
+        {
+            var donorId = GetDonorId();
+            return Ok(await _mediator.Send(new SubmitElectronicSubscriptionPaymentCommand(
+                id, donorId, dto.Amount, (PaymentMethod)dto.PaymentMethod, dto.SenderPhoneNumber, dto.ReceiptImage), ct));
+        }
+
+        /// <summary>تقديم طلب دفع في الفرع</summary>
+        [HttpPost("{id:int}/pay/branch")]
+        [Authorize(Roles = "Donor")]
+        [SwaggerOperation(
+            Summary = "[Donor] دفع في الفرع لاشتراك",
+            Tags = new[] { "Subscriptions — Donor" })]
+        public async Task<IActionResult> PayBranch(
+            int id, [FromBody] BackEnd.Application.Dtos.EmergencyCase.BranchEmergencyDonationDto dto, CancellationToken ct)
+        {
+            var donorId = GetDonorId();
+            return Ok(await _mediator.Send(new SubmitBranchSubscriptionPaymentCommand(
+                id, donorId, dto.Amount, dto.SlotId, dto.BranchContactPhone, User.Identity?.Name ?? ""), ct));
+        }
+
+        /// <summary>تقديم طلب دفع عبر مندوب</summary>
+        [HttpPost("{id:int}/pay/representative")]
+        [Authorize(Roles = "Donor")]
+        [SwaggerOperation(
+            Summary = "[Donor] دفع عبر مندوب لاشتراك",
+            Tags = new[] { "Subscriptions — Donor" })]
+        public async Task<IActionResult> PayRepresentative(
+            int id, [FromBody] BackEnd.Application.Dtos.EmergencyCase.RepresentativeEmergencyDonationDto dto, CancellationToken ct)
+        {
+            var donorId = GetDonorId();
+            return Ok(await _mediator.Send(new SubmitRepresentativeSubscriptionPaymentCommand(
+                id, donorId, dto.Amount, dto.DeliveryAreaId, dto.Address, dto.ContactName, dto.ContactPhone, dto.RepresentativeNotes), ct));
         }
 
         /// <summary>جلب اشتراكات المتبرع الحالي</summary>

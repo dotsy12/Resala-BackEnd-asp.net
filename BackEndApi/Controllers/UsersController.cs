@@ -27,6 +27,7 @@ namespace BackEnd.Api.Controllers
         public UsersController(IMediator mediator) => _mediator = mediator;
 
         private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+        private int GetDonorId() => int.TryParse(User.FindFirst("donorId")?.Value, out var id) ? id : 0;
 
         /// <summary>جلب بيانات الملف الشخصي</summary>
         /// <remarks>
@@ -49,7 +50,7 @@ namespace BackEnd.Api.Controllers
             Summary = "[Donor] تاريخ تبرعات حالات الطوارئ",
             Tags = new[] { "Users — Profile" })]
         public async Task<IActionResult> GetEmergencyContributions(CancellationToken ct)
-            => Ok(await _mediator.Send(new GetDonorEmergencyContributionsQuery(GetUserId()), ct));
+            => Ok(await _mediator.Send(new GetDonorEmergencyContributionsQuery(GetDonorId()), ct));
 
         /// <summary>جلب تفاصيل تبرعات المستخدم لحالة طوارئ معينة</summary>
         [HttpGet("emergency-cases/{emergencyCaseId:int}")]

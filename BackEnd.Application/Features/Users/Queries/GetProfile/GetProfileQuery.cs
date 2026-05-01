@@ -1,5 +1,6 @@
 using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Dtos.User;
+using BackEnd.Application.Features.Users.Queries.GetEmergencyContributions;
 using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Domain.Enums;
 using MediatR;
@@ -48,11 +49,13 @@ namespace BackEnd.Application.Features.Users.Queries.GetProfile
                 .Select(p => new EmergencyContributionDto(
                     PaymentId: p.Id,
                     EmergencyCaseId: p.EmergencyCaseId ?? 0,
-                    CaseTitle: p.EmergencyCase?.Title ?? "حالة طوارئ",
+                    EmergencyCaseTitle: p.EmergencyCase?.Title ?? "حالة طوارئ",
                     Amount: p.Amount.Amount,
-                    PaymentStatus: p.Status.ToString(),
-                    PaymentMethod: p.Method.ToString(),
-                    PaymentDate: p.CreatedOn
+                    Status: p.Status.ToString(),
+                    Method: p.Method.ToString(),
+                    RejectionReason: p.RejectionReason,
+                    CreatedAt: p.CreatedOn,
+                    VerifiedAt: p.VerifiedAt
                 )).ToList();
 
             var dto = new UserProfileDto(

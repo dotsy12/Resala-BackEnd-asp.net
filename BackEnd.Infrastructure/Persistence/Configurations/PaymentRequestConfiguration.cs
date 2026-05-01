@@ -54,6 +54,16 @@ namespace BackEnd.Infrastructure.Persistence.Configurations
                    .WithMany()
                    .HasForeignKey(x => x.DonorId)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            // ✅ منع تكرار الطلبات المعلقة لنفس الاشتراك
+            builder.HasIndex(x => new { x.SubscriptionId, x.Status })
+                   .HasFilter("[SubscriptionId] IS NOT NULL AND [Status] = 1") // 1 = Pending
+                   .IsUnique();
+
+            // ✅ منع تكرار الطلبات المعلقة لنفس حالة الطوارئ لنفس المتبرع
+            builder.HasIndex(x => new { x.DonorId, x.EmergencyCaseId, x.Status })
+                   .HasFilter("[EmergencyCaseId] IS NOT NULL AND [Status] = 1")
+                   .IsUnique();
         }
     }
 }

@@ -106,9 +106,15 @@ namespace BackEnd.Domain.Entities.Sponsorship
         /// <summary>تقديم تاريخ الدفعة القادمة بعد التأكيد</summary>
         public void AdvancePaymentDate()
         {
-            NextPaymentDate = NextPaymentDate.AddMonths((int)PaymentCycle);
+            // إذا كان المتبرع متأخراً (تاريخ اليوم تجاوز تاريخ الدفعة القادمة)، نبدأ الحساب من اليوم
+            // وإلا، نضيف المدة على التاريخ الموجود أصلاً (للحفاظ على دورية الدفع)
+            var baseDate = DateTime.UtcNow > NextPaymentDate ? DateTime.UtcNow : NextPaymentDate;
+            
+            NextPaymentDate = baseDate.AddMonths((int)PaymentCycle);
+
             if (Status == SubscriptionStatus.Suspended)
                 Status = SubscriptionStatus.Active;
+                
             UpdatedOn = DateTime.UtcNow;
         }
 

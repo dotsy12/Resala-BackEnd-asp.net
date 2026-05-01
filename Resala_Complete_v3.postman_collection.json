@@ -1,0 +1,634 @@
+{
+  "info": {
+    "name": "رسالة الخيرية API v3 — Complete",
+    "description": "## نظام إدارة رسالة الخيرية\n\n**الـ Modules:**\n- Auth — تسجيل، دخول، OTP، Refresh Token\n- Sponsorships — برامج الكفالة\n- Subscriptions — اشتراكات الكفالات\n- Payments — طلبات الدفع (VodafoneCash, InstaPay, Branch, Representative)\n- InKindDonations — التبرعات العينية\n- EmergencyCases — الحالات الحرجة\n\n**الأدوار:**\n- Donor → يدخل برقم الهاتف\n- Reception → يدخل بالـ Username\n- Admin → يدخل بالـ Username\n\n**المتغيرات:**\n- `{{baseUrl}}` — http://resala.runasp.net\n- `{{token}}` — JWT Token (يتحفظ تلقائياً)\n- `{{refreshToken}}` — Refresh Token (يتحفظ تلقائياً)\n\n**Flow الاشتراك:**\n1. GET /sponsorships → اختار كفالة\n2. POST /subscriptions → أنشئ اشتراك\n3. POST /subscriptions/{id}/submit-payment → قدم دفع\n4. Staff reviews via /subscriptions/payments/pending\n5. POST /subscriptions/payments/{id}/verify → تأكيد",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://resala.runasp.net", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "🔐 Auth — Public",
+      "item": [
+        {
+          "name": "Register — تسجيل متبرع جديد",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ahmed Mohamed\",\n  \"email\": \"ahmed@example.com\",\n  \"phoneNumber\": \"01012345678\",\n  \"password\": \"SecurePass123\",\n  \"job\": \"Software Engineer\",\n  \"landline\": \"0223456789\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "ينشئ حساباً للمتبرع ويرسل OTP على الإيميل.\n\n**Validation:**\n- phoneNumber: رقم مصري (01xxxxxxxxx)\n- password: 8 أحرف على الأقل + رقم\n- OTP صالح 10 دقائق"
+          },
+          "response": [
+            { "name": "200 - تم التسجيل", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": { \"userId\": 42, \"message\": \"تم التسجيل بنجاح. تحقق من بريدك الإلكتروني.\" },\n  \"statusCode\": 200\n}" },
+            { "name": "409 - مسجّل مسبقاً", "status": "Conflict", "code": 409, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": false,\n  \"message\": \"رقم الهاتف مسجّل مسبقاً.\",\n  \"statusCode\": 409\n}" }
+          ]
+        },
+        {
+          "name": "Verify Email — التحقق من الإيميل",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/verify-email", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","verify-email"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"ahmed@example.com\",\n  \"otp\": \"847291\"\n}", "options": { "raw": { "language": "json" } } },
+            "description": "يتحقق من الـ OTP ويفعّل الحساب.\n**OTP**: 6 أرقام بالظبط"
+          },
+          "response": [
+            { "name": "200 - تم التحقق", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": \"تم التحقق من البريد الإلكتروني بنجاح. يمكنك تسجيل الدخول الآن.\",\n  \"statusCode\": 200\n}" },
+            { "name": "400 - OTP غلط", "status": "Bad Request", "code": 400, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": false,\n  \"message\": \"رمز OTP غير صحيح أو منتهي الصلاحية.\",\n  \"statusCode\": 400\n}" }
+          ]
+        },
+        {
+          "name": "Login (Donor) — دخول المتبرع",
+          "event": [{ "listen": "test", "script": { "exec": ["var j=pm.response.json();","if(j.data&&j.data.token){","pm.collectionVariables.set('token',j.data.token);","pm.collectionVariables.set('refreshToken',j.data.refreshToken||'');","console.log('✅ Tokens saved. Role:',j.data.role);","}"], "type": "text/javascript" } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"phoneNumber\": \"01012345678\",\n  \"password\": \"SecurePass123\"\n}", "options": { "raw": { "language": "json" } } },
+            "description": "دخول المتبرع برقم الهاتف.\n✅ Token يتحفظ تلقائياً في `{{token}}`"
+          },
+          "response": [
+            { "name": "200 - دخول ناجح", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"message\": \"تم تسجيل الدخول بنجاح.\",\n  \"data\": {\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"refreshToken\": \"dGhpcyBpcyBhIHNhbXBsZQ==\",\n    \"role\": \"Donor\",\n    \"userId\": 42,\n    \"name\": \"Ahmed Mohamed\",\n    \"phoneNumber\": \"01012345678\"\n  },\n  \"statusCode\": 200\n}" },
+            { "name": "401 - بيانات غير صحيحة", "status": "Unauthorized", "code": 401, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": false,\n  \"message\": \"بيانات الدخول غير صحيحة.\",\n  \"statusCode\": 401\n}" }
+          ]
+        },
+        {
+          "name": "Login (Admin/Staff) — دخول الأدمن",
+          "event": [{ "listen": "test", "script": { "exec": ["var j=pm.response.json();","if(j.data&&j.data.token){","pm.collectionVariables.set('token',j.data.token);","pm.collectionVariables.set('refreshToken',j.data.refreshToken||'');","console.log('✅ Token saved. Role:',j.data.role);","}"], "type": "text/javascript" } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin@1234\"\n}", "options": { "raw": { "language": "json" } } },
+            "description": "دخول الأدمن أو الموظف بالـ Username.\n✅ Token يتحفظ تلقائياً"
+          },
+          "response": [
+            { "name": "200 - دخول ناجح (Admin)", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": {\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"refreshToken\": \"dGhpcyBpcyBhIHNhbXBsZQ==\",\n    \"role\": \"Admin\",\n    \"userId\": 1,\n    \"name\": \"Admin Resala\",\n    \"phoneNumber\": null\n  },\n  \"statusCode\": 200\n}" }
+          ]
+        },
+        {
+          "name": "Forgot Password — طلب OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","forgot-password"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"ahmed@example.com\"\n}", "options": { "raw": { "language": "json" } } }
+          },
+          "response": [
+            { "name": "200 - تم إرسال OTP", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": \"تم إرسال رمز OTP على بريدك الإلكتروني.\",\n  \"statusCode\": 200\n}" }
+          ]
+        },
+        {
+          "name": "Reset Password — إعادة تعيين الباسورد",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","reset-password"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"ahmed@example.com\",\n  \"otp\": \"847291\",\n  \"newPassword\": \"NewSecurePass456\"\n}", "options": { "raw": { "language": "json" } } }
+          },
+          "response": [
+            { "name": "200 - تم التغيير", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": \"تم تغيير الباسورد بنجاح.\",\n  \"statusCode\": 200\n}" }
+          ]
+        },
+        {
+          "name": "Resend OTP — إعادة إرسال OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/resend-otp", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","resend-otp"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"ahmed@example.com\",\n  \"otpType\": \"EmailVerification\"\n}", "options": { "raw": { "language": "json" } } },
+            "description": "**قيم otpType:**\n- `EmailVerification`\n- `PasswordReset`"
+          },
+          "response": [
+            { "name": "200 - تم الإرسال", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": \"تم إرسال رمز OTP جديد.\",\n  \"statusCode\": 200\n}" }
+          ]
+        },
+        {
+          "name": "Refresh Token — تجديد الـ Token",
+          "event": [{ "listen": "test", "script": { "exec": ["var j=pm.response.json();","if(j.data&&j.data.token){","pm.collectionVariables.set('token',j.data.token);","pm.collectionVariables.set('refreshToken',j.data.refreshToken);","console.log('✅ Tokens renewed');","}"], "type": "text/javascript" } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/refresh-token", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","refresh-token"] },
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}", "options": { "raw": { "language": "json" } } }
+          },
+          "response": [
+            { "name": "200 - تم التجديد", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": {\n    \"token\": \"eyJhbGci...(NEW)\",\n    \"refreshToken\": \"newRefreshToken==\"\n  },\n  \"statusCode\": 200\n}" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔐 Auth — Staff & Admin",
+      "item": [
+        {
+          "name": "Register Donor by Staff — تسجيل متبرع (بدون OTP)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register-donor", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register-donor"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Mona Ali\",\n  \"email\": \"mona@example.com\",\n  \"phoneNumber\": \"01198765432\",\n  \"password\": \"TempPass123\",\n  \"job\": \"Teacher\",\n  \"landline\": \"0223456789\"\n}", "options": { "raw": { "language": "json" } } },
+            "description": "⚠️ يتطلب: Reception أو Admin Token"
+          },
+          "response": [
+            { "name": "200 - تم", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": { \"userId\": 55, \"message\": \"تم تسجيل المتبرع بنجاح.\" }\n}" }
+          ]
+        },
+        {
+          "name": "Create Staff — إنشاء موظف (Admin Only)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/create-staff", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","create-staff"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Sara Hassan\",\n  \"username\": \"reception_sara\",\n  \"email\": \"sara@resala.org\",\n  \"phoneNumber\": \"01123456789\",\n  \"password\": \"StaffPass789\",\n  \"staffType\": 2\n}", "options": { "raw": { "language": "json" } } },
+            "description": "**staffType:**\n- `1` = Admin\n- `2` = Reception\n\n⚠️ يتطلب: Admin Token فقط"
+          },
+          "response": [
+            { "name": "200 - تم الإنشاء", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": { \"staffId\": 3, \"username\": \"reception_sara\" }\n}" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💝 Sponsorships — Public",
+      "item": [
+        {
+          "name": "Get All Sponsorships — كل برامج الكفالة",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/sponsorships", "host": ["{{baseUrl}}"], "path": ["api","v1","sponsorships"] },
+            "description": "متاح للجميع بدون Token"
+          },
+          "response": [
+            { "name": "200 - القائمة", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "[\n  {\n    \"id\": 1,\n    \"name\": \"كفالة يتيم\",\n    \"description\": \"برنامج لكفالة الأيتام\",\n    \"imageUrl\": \"https://res.cloudinary.com/resala/...\",\n    \"icon\": \"orphan-icon\",\n    \"targetAmount\": 50000,\n    \"collectedAmount\": 12000,\n    \"isActive\": true,\n    \"createdAt\": \"2026-01-01T00:00:00\"\n  }\n]" }
+          ]
+        },
+        {
+          "name": "Get Sponsorship By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/sponsorships/1", "host": ["{{baseUrl}}"], "path": ["api","v1","sponsorships","1"] }
+          },
+          "response": [
+            { "name": "200 - التفاصيل", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"id\": 1,\n  \"name\": \"كفالة يتيم\",\n  \"description\": \"برنامج لكفالة الأيتام\",\n  \"targetAmount\": 50000,\n  \"collectedAmount\": 12000,\n  \"isActive\": true\n}" },
+            { "name": "404 - غير موجود", "status": "Not Found", "code": 404, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": false,\n  \"message\": \"برنامج الكفالة غير موجود.\"\n}" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💝 Sponsorships — Admin",
+      "item": [
+        {
+          "name": "Create Sponsorship — إنشاء كفالة",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/sponsorships", "host": ["{{baseUrl}}"], "path": ["api","v1","sponsorships"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"كفالة يتيم\",\n  \"description\": \"برنامج لكفالة الأيتام وتوفير احتياجاتهم الأساسية\",\n  \"imageUrl\": \"https://example.com/image.jpg\",\n  \"icon\": \"orphan-icon\",\n  \"targetAmount\": 50000\n}", "options": { "raw": { "language": "json" } } },
+            "description": "⚠️ يتطلب: Admin Token"
+          },
+          "response": [
+            { "name": "201 - تم الإنشاء", "status": "Created", "code": 201, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"id\": 1,\n  \"name\": \"كفالة يتيم\",\n  \"targetAmount\": 50000,\n  \"collectedAmount\": 0,\n  \"isActive\": true\n}" }
+          ]
+        },
+        {
+          "name": "Update Sponsorship — تعديل كفالة",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/sponsorships/1", "host": ["{{baseUrl}}"], "path": ["api","v1","sponsorships","1"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"كفالة يتيم — محدّث\",\n  \"description\": \"وصف محدّث\",\n  \"imageUrl\": \"\",\n  \"icon\": \"new-icon\",\n  \"targetAmount\": 75000,\n  \"isActive\": true\n}", "options": { "raw": { "language": "json" } } }
+          },
+          "response": [
+            { "name": "200 - تم التعديل", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"id\": 1,\n  \"name\": \"كفالة يتيم — محدّث\",\n  \"targetAmount\": 75000\n}" }
+          ]
+        },
+        {
+          "name": "Delete Sponsorship — حذف كفالة",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/sponsorships/1", "host": ["{{baseUrl}}"], "path": ["api","v1","sponsorships","1"] }
+          },
+          "response": [
+            { "name": "204 - تم الحذف", "status": "No Content", "code": 204, "header": [], "body": "" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📋 Subscriptions — Donor",
+      "item": [
+        {
+          "name": "⭐ Step 1: Create Subscription — إنشاء اشتراك",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sponsorshipId\": 1,\n  \"amount\": 500,\n  \"paymentCycle\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "**الخطوة 1:** إنشاء الاشتراك فقط.\n\nبعده استخدم `submit-payment` لتقديم الدفع.\n\n**paymentCycle:**\n- `1` = شهري\n- `3` = كل 3 شهور\n- `6` = كل 6 شهور\n\n⚠️ يتطلب: Donor Token"
+          },
+          "response": [
+            { "name": "200 - تم إنشاء الاشتراك", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"message\": \"تم إنشاء الاشتراك بنجاح. يمكنك الآن تقديم طلب الدفع.\",\n  \"data\": {\n    \"id\": 5,\n    \"donorId\": 3,\n    \"donorName\": \"Ahmed Mohamed\",\n    \"sponsorshipId\": 1,\n    \"sponsorshipName\": \"كفالة يتيم\",\n    \"amount\": 500,\n    \"paymentCycle\": \"Monthly\",\n    \"status\": \"Active\",\n    \"startDate\": \"2026-04-24T00:00:00\",\n    \"nextPaymentDate\": \"2026-05-24T00:00:00\",\n    \"createdOn\": \"2026-04-24T00:00:00\",\n    \"recentPayments\": []\n  }\n}" },
+            { "name": "409 - مشترك بالفعل", "status": "Conflict", "code": 409, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": false,\n  \"message\": \"أنت مشترك بالفعل في هذا البرنامج.\"\n}" }
+          ]
+        },
+        {
+          "name": "⭐ Step 2A: Submit Payment (VodafoneCash) — دفع فودافون كاش",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/5/submit-payment", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","5","submit-payment"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "paymentMethod", "value": "1", "type": "text", "description": "1=VodafoneCash" },
+                { "key": "amount", "value": "500", "type": "text" },
+                { "key": "senderPhoneNumber", "value": "01012345678", "type": "text", "description": "رقم المحوّل منه" },
+                { "key": "receiptImage", "type": "file", "src": [], "description": "صورة إثبات التحويل (jpg/png, max 5MB)" }
+              ]
+            },
+            "description": "**الخطوة 2 - VodafoneCash/InstaPay:**\n\n- `paymentMethod`: `1`=VodafoneCash, `2`=InstaPay\n- `senderPhoneNumber`: رقم الهاتف المحوّل منه (01xxxxxxxxx)\n- `receiptImage`: صورة الإيصال (jpg/png, max 5MB)\n\n⚠️ يتطلب: Donor Token\n⚠️ Content-Type: multipart/form-data"
+          },
+          "response": [
+            { "name": "200 - تم الإرسال", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"message\": \"تم استلام طلب الدفع بنجاح. سيتم مراجعته من قِبل الفريق.\",\n  \"data\": {\n    \"id\": 12,\n    \"method\": \"VodafoneCash\",\n    \"status\": \"Pending\",\n    \"amount\": 500,\n    \"receiptImageUrl\": \"https://res.cloudinary.com/resala/payment-receipts/abc123.jpg\",\n    \"senderPhoneNumber\": \"01012345678\",\n    \"createdOn\": \"2026-04-24T10:00:00\"\n  }\n}" },
+            { "name": "409 - دفعة معلقة موجودة", "status": "Conflict", "code": 409, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": false,\n  \"message\": \"لديك طلب دفع معلق بالفعل. يرجى انتظار مراجعته.\"\n}" }
+          ]
+        },
+        {
+          "name": "⭐ Step 2B: Submit Payment (InstaPay) — دفع إنستاباي",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/5/submit-payment", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","5","submit-payment"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "paymentMethod", "value": "2", "type": "text", "description": "2=InstaPay" },
+                { "key": "amount", "value": "500", "type": "text" },
+                { "key": "senderPhoneNumber", "value": "01012345678", "type": "text" },
+                { "key": "receiptImage", "type": "file", "src": [], "description": "صورة الإيصال" }
+              ]
+            }
+          },
+          "response": [
+            { "name": "200 - تم الإرسال", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"message\": \"تم استلام طلب الدفع بنجاح.\",\n  \"data\": { \"id\": 13, \"method\": \"InstaPay\", \"status\": \"Pending\" }\n}" }
+          ]
+        },
+        {
+          "name": "⭐ Step 2C: Submit Payment (Branch) — دفع في الفرع",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/5/submit-payment", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","5","submit-payment"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "paymentMethod", "value": "3", "type": "text", "description": "3=Branch" },
+                { "key": "amount", "value": "500", "type": "text" },
+                { "key": "slotId", "value": "2", "type": "text", "description": "ID الموعد من GET /available-slots" },
+                { "key": "donorName", "value": "Ahmed Mohamed", "type": "text", "description": "الاسم للموعد" },
+                { "key": "branchContactPhone", "value": "01012345678", "type": "text", "description": "رقم التواصل" }
+              ]
+            },
+            "description": "⚠️ أولاً اجلب المواعيد من `GET /available-slots`\nثم اختر `slotId` من القائمة"
+          },
+          "response": [
+            { "name": "200 - تم الحجز", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"message\": \"تم استلام طلب الدفع بنجاح.\",\n  \"data\": {\n    \"id\": 14,\n    \"method\": \"Branch\",\n    \"status\": \"Pending\",\n    \"scheduledDate\": \"2026-05-01T10:00:00\"\n  }\n}" },
+            { "name": "409 - الموعد ممتلئ", "status": "Conflict", "code": 409, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": false,\n  \"message\": \"هذا الموعد ممتلئ، اختر موعداً آخر.\"\n}" }
+          ]
+        },
+        {
+          "name": "⭐ Step 2D: Submit Payment (Representative) — مندوب",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/5/submit-payment", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","5","submit-payment"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "paymentMethod", "value": "4", "type": "text", "description": "4=Representative" },
+                { "key": "amount", "value": "500", "type": "text" },
+                { "key": "deliveryAreaId", "value": "3", "type": "text", "description": "ID المنطقة من GET /delivery-areas" },
+                { "key": "contactName", "value": "Ahmed Mohamed", "type": "text", "description": "اسم جهة الاتصال (يمكن تغييره)" },
+                { "key": "contactPhone", "value": "01012345678", "type": "text", "description": "رقم جهة الاتصال (يمكن تغييره)" },
+                { "key": "address", "value": "15 شارع النيل، المعادي، القاهرة", "type": "text", "description": "العنوان التفصيلي لاستلام المندوب" },
+                { "key": "representativeNotes", "value": "الدور الثالث شقة 12", "type": "text", "description": "ملاحظات اختيارية" }
+              ]
+            },
+            "description": "⚠️ أولاً اجلب المناطق من `GET /delivery-areas`\n\nالـ contactName و contactPhone يمكن تغييرهم — لا يلزم أن يكونا بيانات الحساب"
+          },
+          "response": [
+            { "name": "200 - تم الإرسال", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"message\": \"تم استلام طلب الدفع بنجاح. سيتم مراجعته من قِبل الفريق.\",\n  \"data\": {\n    \"id\": 15,\n    \"method\": \"Representative\",\n    \"status\": \"Pending\",\n    \"contactName\": \"Ahmed Mohamed\",\n    \"contactPhone\": \"01012345678\"\n  }\n}" }
+          ]
+        },
+        {
+          "name": "Get My Subscriptions — اشتراكاتي",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/my", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","my"] },
+            "description": "⚠️ يتطلب: Donor Token"
+          },
+          "response": [
+            { "name": "200 - القائمة", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": [\n    {\n      \"id\": 5,\n      \"sponsorshipName\": \"كفالة يتيم\",\n      \"amount\": 500,\n      \"paymentCycle\": \"Monthly\",\n      \"status\": \"Active\",\n      \"nextPaymentDate\": \"2026-05-24T00:00:00\"\n    }\n  ]\n}" }
+          ]
+        },
+        {
+          "name": "Cancel Subscription — إلغاء اشتراك",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/5", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","5"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"سبب الإلغاء اختياري\"\n}", "options": { "raw": { "language": "json" } } }
+          },
+          "response": [
+            { "name": "200 - تم الإلغاء", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": \"تم إلغاء الاشتراك بنجاح.\"\n}" }
+          ]
+        },
+        {
+          "name": "Get Available Slots — المواعيد المتاحة",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/available-slots", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","available-slots"] },
+            "description": "يرجع المواعيد المتاحة لزيارة المقر (فيها أماكن شاغرة)"
+          },
+          "response": [
+            { "name": "200 - المواعيد", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": [\n    {\n      \"id\": 2,\n      \"slotDate\": \"2026-05-01T00:00:00\",\n      \"openFrom\": \"10:00\",\n      \"openTo\": \"18:00\",\n      \"maxCapacity\": 20,\n      \"bookedCount\": 5,\n      \"availableSpots\": 15,\n      \"notes\": \"يوم الأربعاء\"\n    }\n  ]\n}" }
+          ]
+        },
+        {
+          "name": "Get Delivery Areas — مناطق التوصيل",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/delivery-areas", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","delivery-areas"] },
+            "description": "يرجع قائمة مناطق التوصيل المتاحة"
+          },
+          "response": [
+            { "name": "200 - المناطق", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": [\n    { \"id\": 1, \"name\": \"المعادي\" },\n    { \"id\": 2, \"name\": \"مدينة نصر\" },\n    { \"id\": 3, \"name\": \"الزيتون\" }\n  ]\n}" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📋 Subscriptions — Staff",
+      "item": [
+        {
+          "name": "Get Pending Payments — كل الدفعات المعلقة",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/payments/pending", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","payments","pending"] },
+            "description": "كل طلبات الدفع بحالة Pending\n⚠️ يتطلب: Reception أو Admin Token"
+          },
+          "response": [
+            { "name": "200 - القائمة", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": [\n    {\n      \"id\": 12,\n      \"method\": \"VodafoneCash\",\n      \"status\": \"Pending\",\n      \"amount\": 500,\n      \"receiptImageUrl\": \"https://res.cloudinary.com/...\",\n      \"senderPhoneNumber\": \"01012345678\",\n      \"createdOn\": \"2026-04-24T10:00:00\"\n    },\n    {\n      \"id\": 15,\n      \"method\": \"Representative\",\n      \"status\": \"Pending\",\n      \"amount\": 300,\n      \"contactName\": \"Ahmed Mohamed\",\n      \"contactPhone\": \"01012345678\",\n      \"createdOn\": \"2026-04-24T11:00:00\"\n    }\n  ]\n}" }
+          ]
+        },
+        {
+          "name": "Get Pending Representatives — طلبات المناديب",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/payments/pending/representatives", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","payments","pending","representatives"] },
+            "description": "طلبات المناديب المعلقة فقط\n⚠️ يتطلب: Reception أو Admin Token"
+          },
+          "response": [
+            { "name": "200 - القائمة", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": [\n    {\n      \"id\": 15,\n      \"method\": \"Representative\",\n      \"status\": \"Pending\",\n      \"amount\": 300,\n      \"contactName\": \"Ahmed Mohamed\",\n      \"contactPhone\": \"01012345678\"\n    }\n  ]\n}" }
+          ]
+        },
+        {
+          "name": "Get Pending Branch — حجوزات الفرع",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/payments/pending/branch", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","payments","pending","branch"] }
+          },
+          "response": [
+            { "name": "200 - القائمة", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": [\n    {\n      \"id\": 14,\n      \"method\": \"Branch\",\n      \"status\": \"Pending\",\n      \"amount\": 500,\n      \"contactName\": \"Ahmed Mohamed\",\n      \"scheduledDate\": \"2026-05-01T10:00:00\"\n    }\n  ]\n}" }
+          ]
+        },
+        {
+          "name": "✅ Verify Payment — تأكيد دفعة",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/payments/12/verify", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","payments","12","verify"] },
+            "description": "تأكيد الدفع → يحدث تاريخ الدفعة القادمة تلقائياً\n⚠️ يتطلب: Reception أو Admin Token"
+          },
+          "response": [
+            { "name": "200 - تم التأكيد", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": \"تم تأكيد الدفع بنجاح. تم تحديث تاريخ الدفعة القادمة.\"\n}" }
+          ]
+        },
+        {
+          "name": "❌ Reject Payment — رفض دفعة",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/payments/12/reject", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","payments","12","reject"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"صورة الإيصال غير واضحة\"\n}", "options": { "raw": { "language": "json" } } },
+            "description": "⚠️ يتطلب: Reception أو Admin Token"
+          },
+          "response": [
+            { "name": "200 - تم الرفض", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": \"تم رفض طلب الدفع.\"\n}" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📋 Subscriptions — Admin",
+      "item": [
+        {
+          "name": "Add Appointment Slot — إضافة موعد",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/slots", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","slots"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotDate\": \"2026-05-01\",\n  \"openFrom\": \"10:00:00\",\n  \"openTo\": \"18:00:00\",\n  \"maxCapacity\": 20,\n  \"notes\": \"يوم الأربعاء الأول من مايو\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "الأدمن يحدد مواعيد متاحة للمتبرعين لزيارة المقر\n\n**openFrom / openTo**: بصيغة `HH:mm:ss`\n\n⚠️ يتطلب: Admin Token"
+          },
+          "response": [
+            { "name": "200 - تم الإنشاء", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": {\n    \"id\": 3,\n    \"slotDate\": \"2026-05-01T00:00:00\",\n    \"openFrom\": \"10:00\",\n    \"openTo\": \"18:00\",\n    \"maxCapacity\": 20,\n    \"bookedCount\": 0,\n    \"availableSpots\": 20,\n    \"notes\": \"يوم الأربعاء\"\n  }\n}" }
+          ]
+        },
+        {
+          "name": "Get All Slots — كل المواعيد (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/subscriptions/slots", "host": ["{{baseUrl}}"], "path": ["api","v1","subscriptions","slots"] },
+            "description": "يرجع كل المواعيد (بما فيها الممتلئة والقديمة)\n⚠️ يتطلب: Admin Token"
+          },
+          "response": [
+            { "name": "200 - كل المواعيد", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"slotDate\": \"2026-04-15T00:00:00\",\n      \"openFrom\": \"10:00\",\n      \"openTo\": \"18:00\",\n      \"maxCapacity\": 10,\n      \"bookedCount\": 10,\n      \"availableSpots\": 0\n    },\n    {\n      \"id\": 3,\n      \"slotDate\": \"2026-05-01T00:00:00\",\n      \"openFrom\": \"10:00\",\n      \"openTo\": \"18:00\",\n      \"maxCapacity\": 20,\n      \"bookedCount\": 5,\n      \"availableSpots\": 15\n    }\n  ]\n}" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📦 InKindDonations — Staff",
+      "item": [
+        {
+          "name": "Record InKind Donation — تسجيل تبرع عيني",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/in-kind-donations", "host": ["{{baseUrl}}"], "path": ["api","v1","in-kind-donations"] },
+            "body": { "mode": "raw", "raw": "{\n  \"donorId\": 5,\n  \"donationTypeName\": \"ملابس شتوية\",\n  \"quantity\": 10,\n  \"description\": \"ملابس شتوية للأطفال من سن 5-10 سنوات\"\n}", "options": { "raw": { "language": "json" } } },
+            "description": "**ملاحظة:** الـ staffId يتحدد تلقائياً من الـ Token\n\n⚠️ يتطلب: Reception أو Admin Token"
+          },
+          "response": [
+            { "name": "200 - تم التسجيل", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"message\": \"تم تسجيل التبرع العيني بنجاح.\",\n  \"data\": {\n    \"id\": 1,\n    \"donorId\": 5,\n    \"donorName\": \"Ahmed Mohamed\",\n    \"donationTypeName\": \"ملابس شتوية\",\n    \"quantity\": 10,\n    \"description\": \"ملابس شتوية للأطفال\",\n    \"recordedByStaffName\": \"Sara Hassan\",\n    \"recordedAt\": \"2026-04-24T10:00:00\"\n  }\n}" }
+          ]
+        },
+        {
+          "name": "Get All InKind Donations — كل التبرعات",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/in-kind-donations", "host": ["{{baseUrl}}"], "path": ["api","v1","in-kind-donations"] }
+          },
+          "response": [
+            { "name": "200 - القائمة", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"donorName\": \"Ahmed Mohamed\",\n      \"donationTypeName\": \"ملابس شتوية\",\n      \"quantity\": 10,\n      \"recordedAt\": \"2026-04-24T10:00:00\"\n    }\n  ]\n}" }
+          ]
+        },
+        {
+          "name": "Get InKind Donation By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/in-kind-donations/1", "host": ["{{baseUrl}}"], "path": ["api","v1","in-kind-donations","1"] }
+          },
+          "response": [
+            { "name": "200 - التفاصيل", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": {\n    \"id\": 1,\n    \"donorName\": \"Ahmed Mohamed\",\n    \"donationTypeName\": \"ملابس شتوية\",\n    \"quantity\": 10\n  }\n}" }
+          ]
+        },
+        {
+          "name": "Get Donor InKind Donations — تبرعات متبرع",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/in-kind-donations/donor/5", "host": ["{{baseUrl}}"], "path": ["api","v1","in-kind-donations","donor","5"] }
+          },
+          "response": [
+            { "name": "200 - تبرعات المتبرع", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": []\n}" }
+          ]
+        },
+        {
+          "name": "Update InKind Donation — تعديل تبرع",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/in-kind-donations/1", "host": ["{{baseUrl}}"], "path": ["api","v1","in-kind-donations","1"] },
+            "body": { "mode": "raw", "raw": "{\n  \"donationTypeName\": \"ملابس شتوية محدثة\",\n  \"quantity\": 15,\n  \"description\": \"تعديل الكمية\"\n}", "options": { "raw": { "language": "json" } } }
+          },
+          "response": [
+            { "name": "200 - تم التعديل", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"message\": \"تم تعديل التبرع العيني بنجاح.\"\n}" }
+          ]
+        },
+        {
+          "name": "Delete InKind Donation — حذف تبرع (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/in-kind-donations/1", "host": ["{{baseUrl}}"], "path": ["api","v1","in-kind-donations","1"] },
+            "description": "⚠️ يتطلب: Admin Token فقط"
+          },
+          "response": [
+            { "name": "200 - تم الحذف", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": true,\n  \"data\": \"تم حذف التبرع العيني بنجاح.\"\n}" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🚨 EmergencyCases",
+      "item": [
+        {
+          "name": "Get All Emergency Cases — كل الحالات",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/emergency-cases", "host": ["{{baseUrl}}"], "path": ["api","v1","emergency-cases"] },
+            "description": "متاح للجميع بدون Token"
+          },
+          "response": [
+            { "name": "200 - القائمة", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "[\n  {\n    \"id\": 1,\n    \"title\": \"عملية عاجلة\",\n    \"description\": \"مريض يحتاج عملية فورًا\",\n    \"targetAmount\": 50000,\n    \"collectedAmount\": 12000\n  }\n]" }
+          ]
+        },
+        {
+          "name": "Get Emergency Case By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/emergency-cases/1", "host": ["{{baseUrl}}"], "path": ["api","v1","emergency-cases","1"] }
+          },
+          "response": [
+            { "name": "200 - التفاصيل", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"id\": 1,\n  \"title\": \"عملية عاجلة\",\n  \"targetAmount\": 50000\n}" },
+            { "name": "404 - غير موجودة", "status": "Not Found", "code": 404, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"succeeded\": false,\n  \"message\": \"الحالة الحرجة غير موجودة.\"\n}" }
+          ]
+        },
+        {
+          "name": "Create Emergency Case — إنشاء حالة (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/emergency-cases", "host": ["{{baseUrl}}"], "path": ["api","v1","emergency-cases"] },
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"عملية عاجلة\",\n  \"description\": \"مريض يحتاج عملية فورًا ولا يملك تكاليفها\",\n  \"targetAmount\": 50000\n}", "options": { "raw": { "language": "json" } } },
+            "description": "⚠️ يتطلب: Admin Token"
+          },
+          "response": [
+            { "name": "201 - تم الإنشاء", "status": "Created", "code": 201, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"id\": 1,\n  \"title\": \"عملية عاجلة\",\n  \"targetAmount\": 50000,\n  \"collectedAmount\": 0\n}" }
+          ]
+        },
+        {
+          "name": "Update Emergency Case — تعديل حالة (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/emergency-cases/1", "host": ["{{baseUrl}}"], "path": ["api","v1","emergency-cases","1"] },
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"عملية عاجلة — محدّث\",\n  \"description\": \"وصف محدّث\",\n  \"targetAmount\": 75000\n}", "options": { "raw": { "language": "json" } } }
+          },
+          "response": [
+            { "name": "200 - تم التعديل", "status": "OK", "code": 200, "header": [{"key":"Content-Type","value":"application/json"}], "body": "{\n  \"id\": 1,\n  \"title\": \"عملية عاجلة — محدّث\",\n  \"targetAmount\": 75000\n}" }
+          ]
+        },
+        {
+          "name": "Delete Emergency Case — حذف حالة (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/emergency-cases/1", "host": ["{{baseUrl}}"], "path": ["api","v1","emergency-cases","1"] }
+          },
+          "response": [
+            { "name": "204 - تم الحذف", "status": "No Content", "code": 204, "header": [], "body": "" }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+using BackEnd.Application.Features.Users.Queries.GetEmergencyContributions;
+
 namespace BackEnd.Application.Dtos.User
 {
     public record UserProfileDto(
@@ -14,16 +16,6 @@ namespace BackEnd.Application.Dtos.User
         decimal TotalEmergencyDonationsAmount,
         int EmergencyCasesCount,
         List<EmergencyContributionDto> EmergencyContributions
-    );
-
-    public record EmergencyContributionDto(
-        int PaymentId,
-        int EmergencyCaseId,
-        string CaseTitle,
-        decimal Amount,
-        string PaymentStatus,
-        string PaymentMethod,
-        DateTime PaymentDate
     );
 
     public record UserEmergencyCaseDetailsDto(
