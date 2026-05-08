@@ -47,6 +47,7 @@ namespace BackEnd.Infrastructure.InfrastructureDependencies
             services.AddScoped<IDeliveryAreaRepository, DeliveryAreaRepository>();
             services.AddScoped<IAppointmentSlotRepository, AppointmentSlotRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
+            services.AddScoped<IFinancialAnalysisRepository, FinancialAnalysisRepository>();
 
 
             // أضف كمان
