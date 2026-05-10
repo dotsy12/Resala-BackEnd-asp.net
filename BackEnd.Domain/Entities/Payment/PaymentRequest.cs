@@ -130,7 +130,7 @@ namespace BackEnd.Domain.Entities.Payment
             UpdatedOn = DateTime.UtcNow;
 
             AddDomainEvent(new PaymentVerifiedEvent(
-                Id, SubscriptionId, GeneralDonationId, EmergencyCaseId,
+                Id, DonorId, SubscriptionId, GeneralDonationId, EmergencyCaseId,
                 Amount.Amount, staffId));
         }
 

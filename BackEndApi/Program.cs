@@ -3,6 +3,7 @@ using BackEnd.Api.Middleware;
 using BackEnd.Application.ALLApplicationDependencies;
 using BackEnd.Infrastructure.AllInfrastructureDependencies;
 using BackEnd.Infrastructure.InfrastructureDependencies;
+using BackEnd.Infrastructure.DependencyInjection;
 using Microsoft.OpenApi.Models;
 using Serilog;
 
@@ -33,7 +34,8 @@ try
     builder.Services
         .AddApplicationDependencies()
         .AuthenticationServices(builder.Configuration)
-        .AddInfrastructureDependencies(builder.Configuration);
+        .AddInfrastructureDependencies(builder.Configuration)
+        .AddFirebase(builder.Configuration);
 
     builder.Services.AddSwaggerGen(c =>
 {

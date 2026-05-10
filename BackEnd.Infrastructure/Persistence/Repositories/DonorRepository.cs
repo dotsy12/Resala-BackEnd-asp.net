@@ -73,6 +73,9 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
                 .ToListAsync(ct);
         }
 
+        public async Task<IReadOnlyList<int>> GetAllIdsAsync(CancellationToken ct = default)
+            => await _db.Donors.Select(d => d.Id).ToListAsync(ct);
+
         public Task SaveChangesAsync(CancellationToken ct = default)
             => _db.SaveChangesAsync(ct);
     }

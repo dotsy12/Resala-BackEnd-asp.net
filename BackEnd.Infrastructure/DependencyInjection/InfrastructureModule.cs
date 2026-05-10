@@ -31,6 +31,8 @@ namespace BackEnd.Infrastructure.InfrastructureDependencies
            services.AddScoped<IJwtService, JwtService>();
            services.AddScoped<IOtpService, OtpService>();
            services.AddScoped<IEmailService, EmailService>();
+           services.AddScoped<IFirebaseService, FirebaseService>();
+           services.AddScoped<INotificationService, NotificationService>();
             // InfrastructureModule.cs — أضف هذه الأسطر الثلاثة
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IDonorRepository, DonorRepository>();
@@ -47,8 +49,10 @@ namespace BackEnd.Infrastructure.InfrastructureDependencies
             services.AddScoped<IDeliveryAreaRepository, DeliveryAreaRepository>();
             services.AddScoped<IAppointmentSlotRepository, AppointmentSlotRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
+            services.AddScoped<IDeviceTokenRepository, DeviceTokenRepository>();
             services.AddScoped<IFinancialAnalysisRepository, FinancialAnalysisRepository>();
 
+            services.AddHostedService<TokenCleanupBackgroundJob>();
 
             // أضف كمان
             services.AddHttpContextAccessor();

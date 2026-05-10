@@ -11,6 +11,7 @@ namespace BackEnd.Domain.Events
 
     public sealed record PaymentVerifiedEvent(
         int PaymentRequestId,
+        int DonorId,
         int? SubscriptionId,
         int? GeneralDonationId,
         int? EmergencyCaseId,

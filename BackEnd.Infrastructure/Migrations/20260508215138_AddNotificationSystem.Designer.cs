@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Persistence.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BackEnd.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260508215138_AddNotificationSystem")]
+    partial class AddNotificationSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -686,7 +689,8 @@ namespace BackEnd.Infrastructure.Migrations
                         .HasFilter("[SubscriptionId] IS NOT NULL AND [Status] = 1");
 
                     b.HasIndex("DonorId", "EmergencyCaseId", "Status")
-                        .HasFilter("[EmergencyCaseId] IS NOT NULL");
+                        .IsUnique()
+                        .HasFilter("[EmergencyCaseId] IS NOT NULL AND [Status] = 1");
 
                     b.ToTable("PaymentRequests", (string)null);
                 });

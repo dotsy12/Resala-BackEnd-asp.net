@@ -1,6 +1,8 @@
 // VerifyPaymentCommand.cs + Handler
+using BackEnd.Application.Abstractions.Persistence;
 using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Interfaces.Repositories;
+using BackEnd.Application.Interfaces.Services;
 using BackEnd.Domain.Enums;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -13,20 +15,20 @@ namespace BackEnd.Application.Features.Subscriptions.Commands.VerifyPayment
         private readonly IPaymentRequestRepository _paymentRepo;
         private readonly ISponsorshipSubscriptionRepository _subRepo;
         private readonly IEmergencyCaseRepository _emergencyRepo;
-        private readonly INotificationRepository _notificationRepo;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<VerifyPaymentHandler> _logger;
 
         public VerifyPaymentHandler(
             IPaymentRequestRepository paymentRepo,
             ISponsorshipSubscriptionRepository subRepo,
             IEmergencyCaseRepository emergencyRepo,
-            INotificationRepository notificationRepo,
+            IUnitOfWork unitOfWork,
             ILogger<VerifyPaymentHandler> logger)
         { 
             _paymentRepo = paymentRepo; 
             _subRepo = subRepo; 
             _emergencyRepo = emergencyRepo;
-            _notificationRepo = notificationRepo;
+            _unitOfWork = unitOfWork;
             _logger = logger; 
         }
 
@@ -62,17 +64,9 @@ namespace BackEnd.Application.Features.Subscriptions.Commands.VerifyPayment
                 }
             }
 
-            // 3. إرسال إشعار للمتبرع
-            var notification = BackEnd.Domain.Entities.Notification.Notification.Create(
-                donorId: payment.DonorId,
-                type: NotificationType.PaymentVerified,
-                title: "تم تأكيد عملية الدفع",
-                message: $"شكراً لك! تم تأكيد عملية الدفع بمبلغ {payment.Amount.Amount} ج.م بنجاح.",
-                relatedEntityId: payment.Id
-            );
-            await _notificationRepo.AddAsync(notification, ct);
-
-            await _paymentRepo.SaveChangesAsync(ct);
+            // يتم إرسال الإشعار تلقائياً عبر Domain Event Handler (PaymentVerifiedEventHandler)
+            // عند استدعاء SaveChangesAsync في UnitOfWork
+            await _unitOfWork.SaveChangesAsync(ct);
 
             _logger.LogInformation(
                 "تم تأكيد الدفع: Id={Id} بواسطة Staff={StaffId}",

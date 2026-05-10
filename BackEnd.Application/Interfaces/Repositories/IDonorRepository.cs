@@ -11,6 +11,7 @@ namespace BackEnd.Application.Interfaces.Repositories
         Task<(IReadOnlyList<Donor> Items, int TotalCount)> GetPagedAsync(
             string? search, int pageNumber, int pageSize, CancellationToken ct = default);
         Task<IReadOnlyList<Donor>> GetDropdownAsync(string? search, int count = 20, CancellationToken ct = default);
+        Task<IReadOnlyList<int>> GetAllIdsAsync(CancellationToken ct = default);
         Task SaveChangesAsync(CancellationToken ct = default);
     }
 }

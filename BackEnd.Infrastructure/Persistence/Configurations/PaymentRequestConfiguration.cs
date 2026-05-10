@@ -60,10 +60,9 @@ namespace BackEnd.Infrastructure.Persistence.Configurations
                    .HasFilter("[SubscriptionId] IS NOT NULL AND [Status] = 1") // 1 = Pending
                    .IsUnique();
 
-            // ✅ منع تكرار الطلبات المعلقة لنفس حالة الطوارئ لنفس المتبرع
+            // ✅ سماح بتكرار الطلبات لنفس حالة الطوارئ لنفس المتبرع مع الاحتفاظ بالفهرس للتحسين
             builder.HasIndex(x => new { x.DonorId, x.EmergencyCaseId, x.Status })
-                   .HasFilter("[EmergencyCaseId] IS NOT NULL AND [Status] = 1")
-                   .IsUnique();
+                   .HasFilter("[EmergencyCaseId] IS NOT NULL");
         }
     }
 }

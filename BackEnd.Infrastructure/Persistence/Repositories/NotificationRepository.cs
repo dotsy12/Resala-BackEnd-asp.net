@@ -1,18 +1,27 @@
 using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Domain.Entities.Notification;
 using BackEnd.Infrastructure.Persistence.DbContext;
+using Microsoft.EntityFrameworkCore;
 
 namespace BackEnd.Infrastructure.Persistence.Repositories
 {
-    public class NotificationRepository : INotificationRepository
+    public class NotificationRepository : GenericRepository<Notification, int>, INotificationRepository
     {
-        private readonly ApplicationDbContext _db;
-        public NotificationRepository(ApplicationDbContext db) => _db = db;
+        public NotificationRepository(ApplicationDbContext context) : base(context)
+        {
+        }
 
-        public async Task AddAsync(Notification notification, CancellationToken ct = default)
-            => await _db.Notifications.AddAsync(notification, ct);
+        public async Task<List<Notification>> GetByDonorIdAsync(int donorId, CancellationToken ct = default)
+        {
+            return await _set
+                .Where(n => n.DonorId == donorId)
+                .OrderByDescending(n => n.CreatedOn)
+                .ToListAsync(ct);
+        }
 
-        public Task SaveChangesAsync(CancellationToken ct = default)
-            => _db.SaveChangesAsync(ct);
+        public async Task SaveChangesAsync(CancellationToken ct = default)
+        {
+            await _context.SaveChangesAsync(ct);
+        }
     }
 }

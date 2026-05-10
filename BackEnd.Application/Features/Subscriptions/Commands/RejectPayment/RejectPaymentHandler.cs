@@ -1,6 +1,8 @@
 // RejectPaymentCommand.cs + Handler
+using BackEnd.Application.Abstractions.Persistence;
 using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Interfaces.Repositories;
+using BackEnd.Application.Interfaces.Services;
 using BackEnd.Domain.Enums;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -11,16 +13,16 @@ namespace BackEnd.Application.Features.Subscriptions.Commands.RejectPayment
         : IRequestHandler<RejectPaymentCommand, Result<string>>
     {
         private readonly IPaymentRequestRepository _repo;
-        private readonly INotificationRepository _notificationRepo;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<RejectPaymentHandler> _logger;
 
         public RejectPaymentHandler(
             IPaymentRequestRepository repo,
-            INotificationRepository notificationRepo,
+            IUnitOfWork unitOfWork,
             ILogger<RejectPaymentHandler> logger)
         { 
             _repo = repo; 
-            _notificationRepo = notificationRepo;
+            _unitOfWork = unitOfWork;
             _logger = logger; 
         }
 
@@ -34,17 +36,8 @@ namespace BackEnd.Application.Features.Subscriptions.Commands.RejectPayment
             payment.Reject(request.StaffId, request.Reason);
             _repo.Update(payment);
 
-            // إرسال إشعار للمتبرع بالرفض
-            var notification = BackEnd.Domain.Entities.Notification.Notification.Create(
-                donorId: payment.DonorId,
-                type: NotificationType.PaymentRejected,
-                title: "تم رفض عملية الدفع",
-                message: $"نعتذر، تم رفض عملية الدفع بمبلغ {payment.Amount.Amount} ج.م. السبب: {request.Reason}",
-                relatedEntityId: payment.Id
-            );
-            await _notificationRepo.AddAsync(notification, ct);
-
-            await _repo.SaveChangesAsync(ct);
+            // يتم إرسال الإشعار تلقائياً عبر Domain Event Handler (PaymentRejectedEventHandler)
+            await _unitOfWork.SaveChangesAsync(ct);
 
             _logger.LogInformation("تم رفض الدفع: Id={Id}", payment.Id);
             return Result<string>.Success("تم رفض طلب الدفع وإرسال إشعار للمتبرع.");

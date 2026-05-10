@@ -32,6 +32,7 @@ namespace BackEnd.Infrastructure.Persistence.DbContext
         public DbSet<GeneralDonation> GeneralDonations { get; set; }
         public DbSet<InKindDonation> InKindDonations { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<DeviceToken> DeviceTokens { get; set; }
         public DbSet<DeliveryArea> DeliveryAreas { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<BranchAppointmentSlot> BranchAppointmentSlots { get; set; }

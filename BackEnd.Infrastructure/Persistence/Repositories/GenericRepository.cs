@@ -27,10 +27,23 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
             return await _set.FirstOrDefaultAsync(e => e.Id!.Equals(id));
         }
 
+        public virtual async Task<List<TEntity>> GetAllAsync()
+        {
+            return await _set.ToListAsync();
+        }
+
         public virtual async Task AddAsync(TEntity entity)
         {
             entity.CreatedOn = DateTime.UtcNow;
             await _set.AddAsync(entity);
+        }
+
+        public virtual async Task AddRangeAsync(IEnumerable<TEntity> entities)
+        {
+            foreach (var entity in entities)
+                entity.CreatedOn = DateTime.UtcNow;
+
+            await _set.AddRangeAsync(entities);
         }
 
         public virtual void Update(TEntity entity)
