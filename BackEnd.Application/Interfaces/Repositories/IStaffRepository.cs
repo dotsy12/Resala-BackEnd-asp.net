@@ -9,6 +9,9 @@ namespace BackEnd.Application.Interfaces.Repositories
         Task<int?> GetIdByUserIdAsync(string userId, CancellationToken ct = default);
         // IStaffRepository.cs — أضف السطر ده
         Task<StaffMember?> GetByIdAsync(int id, CancellationToken ct = default);
+        Task<StaffMember?> GetByIdWithUserAsync(int id, CancellationToken ct = default);
+        Task<(IReadOnlyList<StaffMember> Items, int TotalCount)> GetStaffWithPaginationAsync(
+            string? search, int pageNumber, int pageSize, CancellationToken ct = default);
         Task<AccountStatus?> GetStatusByIdAsync(int staffId, CancellationToken ct = default);
         Task SaveChangesAsync(CancellationToken ct = default);
     }
