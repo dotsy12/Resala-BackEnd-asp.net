@@ -6,13 +6,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="Exists('Secrets\graduaation-project-resala-firebase-adminsdk-fbsvc-15a2030a84.json')">
     <None Remove="Secrets\graduaation-project-resala-firebase-adminsdk-fbsvc-15a2030a84.json" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="Secrets\graduaation-project-resala-firebase-adminsdk-fbsvc-15a2030a84.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
@@ -32,6 +29,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.0" />
   </ItemGroup>
 

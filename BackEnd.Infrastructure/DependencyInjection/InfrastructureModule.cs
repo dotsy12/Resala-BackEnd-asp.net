@@ -23,6 +23,18 @@ namespace BackEnd.Infrastructure.InfrastructureDependencies
         {
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration =
+                    configuration.GetConnectionString("Redis")
+                    ?? configuration["Redis:ConnectionString"]
+                    ?? "localhost:6379";
+
+                options.InstanceName =
+                    configuration["Redis:InstanceName"]
+                    ?? "Resala:";
+            });
+
           //  services.AddScoped<IIdentityService, IdentityServies>();
 
             services.Configure<CloudinarySettings>(configuration.GetSection(CloudinarySettings.SectionName));
@@ -51,6 +63,7 @@ namespace BackEnd.Infrastructure.InfrastructureDependencies
             services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddScoped<IDeviceTokenRepository, DeviceTokenRepository>();
             services.AddScoped<IFinancialAnalysisRepository, FinancialAnalysisRepository>();
+            services.AddScoped<IBasketRepository, RedisBasketRepository>();
 
             services.AddHostedService<TokenCleanupBackgroundJob>();
 

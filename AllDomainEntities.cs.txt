@@ -1,0 +1,1050 @@
+// File: BackEnd.Domain\Entities\Basket\BasketItem.cs
+namespace BackEnd.Domain.Entities.Basket;
+
+public class BasketItem
+{
+    
+}
+
+// File: BackEnd.Domain\Entities\Basket\DonorBasket.cs
+namespace BackEnd.Domain.Entities.Basket;
+
+public class DonorBasket
+{
+    
+}
+
+// File: BackEnd.Domain\Entities\EmergencyCase\EmergencyCase.cs
+using BackEnd.Domain.Common;
+using BackEnd.Domain.Enums;
+using BackEnd.Domain.Interfaces;
+using BackEnd.Domain.ValueObjects;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace BackEnd.Domain.Entities.EmergencyCase
+{
+    public sealed class EmergencyCase : BaseEntity<int>, IAggregateRoot
+    {
+        public string Title { get; private set; } = null!;
+        public string Description { get; private set; } = null!;
+        public string? ImagePath { get; private set; }
+        public string? ImagePublicId { get; private set; }
+
+        public UrgencyLevel UrgencyLevel { get; private set; }
+
+        public Money RequiredAmount { get; private set; } = null!;
+        public Money CollectedAmount { get; private set; } = null!;
+
+        public bool IsActive { get; private set; }
+
+        private EmergencyCase() { }
+
+        // ✅ Factory Method
+        public static EmergencyCase Create(
+            string title,
+            string description,
+            UrgencyLevel urgencyLevel,
+            Money requiredAmount,
+            string? imagePath = null,
+            string? imagePublicId = null)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                throw new ArgumentException("Title is required.");
+
+            if (string.IsNullOrWhiteSpace(description))
+                throw new ArgumentException("Description is required.");
+
+            return new EmergencyCase
+            {
+                Title = title.Trim(),
+                Description = description.Trim(),
+                UrgencyLevel = urgencyLevel,
+                RequiredAmount = requiredAmount,
+                CollectedAmount = Money.Zero(),
+                ImagePath = imagePath,
+                ImagePublicId = imagePublicId,
+                IsActive = true,
+                CreatedOn = DateTime.UtcNow
+            };
+        }
+
+        // ✅ Business Methods
+
+        public void UpdateDetails(string title, string description, string? imagePath, string? imagePublicId)
+        {
+            Title = string.IsNullOrWhiteSpace(title)
+                ? throw new ArgumentException("Title is required.")
+                : title.Trim();
+
+            Description = string.IsNullOrWhiteSpace(description)
+                ? throw new ArgumentException("Description is required.")
+                : description.Trim();
+
+            ImagePath = imagePath;
+            ImagePublicId = imagePublicId;
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        public void UpdateRequiredAmount(Money requiredAmount)
+        {
+            if (requiredAmount == null)
+                throw new ArgumentNullException(nameof(requiredAmount));
+
+            RequiredAmount = requiredAmount;
+            UpdatedOn = DateTime.UtcNow;
+        }
+        public void SetUrgency(UrgencyLevel level)
+        {
+            UrgencyLevel = level;
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        public void AddDonation(Money amount)
+        {
+            CollectedAmount = CollectedAmount.Add(amount);
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        public void Activate()
+        {
+            IsActive = true;
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        public void Deactivate()
+        {
+            IsActive = false;
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        public bool IsCompleted =>
+            RequiredAmount is not null &&
+            CollectedAmount.Amount >= RequiredAmount.Amount;
+    }
+}
+
+// File: BackEnd.Domain\Entities\Identity\ApplicationUser.cs
+// Domain/Entities/Identity/ApplicationUser.cs
+
+using Microsoft.AspNetCore.Identity;
+
+namespace BackEnd.Domain.Entities.Identity
+{
+    public class ApplicationUser : IdentityUser
+    {
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string? ProfileImagePath { get; set; }
+        public string? ProfileImagePublicId { get; set; }
+        public string? Address { get; set; }
+        public string? Governorate { get; set; }
+        public bool IsActive { get; set; } = true;
+        public bool IsDeleted { get; set; } = false;
+        public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedOn { get; set; }
+
+    }
+}
+
+// File: BackEnd.Domain\Entities\Identity\AuthenticationHepler\JwtSittings.cs
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace BackEnd.Domain.Entities.Identity.AuthenticationHepler
+{
+    public class JwtSittings
+    {
+        public string Key { get; set; }
+        public string Issuer { get; set; }
+        public string Audience { get; set; }
+        public double DurationInHours { get; set; }
+    }
+}
+
+// File: BackEnd.Domain\Entities\Identity\AuthenticationHepler\RefreshToken.cs
+// BackEnd.Domain\Entities\Identity\RefreshToken.cs
+namespace BackEnd.Domain.Entities.Identity
+{
+    public class RefreshToken
+    {
+        public int Id { get; set; }
+        public string UserId { get; set; } = null!;
+        public string Token { get; set; } = null!;
+        public DateTime ExpiresAt { get; set; }
+        public bool IsRevoked { get; set; } = false;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public ApplicationUser User { get; set; } = null!;
+
+        public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
+        public bool IsActive => !IsRevoked && !IsExpired;
+    }
+}
+
+// File: BackEnd.Domain\Entities\Identity\AuthenticationHepler\ResponseAuthModel.cs
+using Microsoft.AspNetCore.Http;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
+
+namespace BackEnd.Domain.Entities.Identity.AuthenticationHepler
+{
+    public class ResponseAuthModel
+    {
+        public string Message { get; set; }
+        public string Token { get; set; }
+        public List<string> Roles { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime RefreshTokenExpiration { get; set; }
+        [JsonIgnore]
+        public CookieOptions CookieOptions { get; set; } // New property for cookie settings
+    }
+}
+
+// File: BackEnd.Domain\Entities\Identity\Donor.cs
+// Domain/Entities/Identity/Donor.cs
+using BackEnd.Domain.Common;
+using BackEnd.Domain.Events;
+using BackEnd.Domain.Interfaces;
+using BackEnd.Domain.ValueObjects;
+
+namespace BackEnd.Domain.Entities.Identity
+{
+    public sealed class Donor : BaseEntity<int>, IAggregateRoot
+    {
+        public string UserId { get; private set; } = null!;
+        public PersonName FullName { get; private set; } = null!;
+        public EmailAddress Email { get; private set; } = null!;
+        public PhoneNumber PhoneNumber { get; private set; } = null!;
+        public string? Landline { get; private set; }
+        public string? Job { get; private set; }
+
+        // Navigation (read-only from outside)
+        public ApplicationUser? User { get; private set; }
+
+        private Donor() { }
+
+        public static Donor Create(
+            string userId,
+            string firstName, string lastName,
+            string email, string phoneNumber,
+            string? job = null, string? landline = null)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new ArgumentNullException(nameof(userId));
+
+            var donor = new Donor
+            {
+                UserId = userId,
+                FullName = new PersonName(firstName, lastName),
+                Email = new EmailAddress(email),
+                PhoneNumber = new PhoneNumber(phoneNumber),
+                Job = job?.Trim(),
+                Landline = landline?.Trim(),
+                CreatedOn = DateTime.UtcNow
+            };
+
+            donor.AddDomainEvent(new DonorRegisteredEvent(0, email));
+            return donor;
+        }
+
+        public void UpdateProfile(
+            string firstName, string lastName,
+            string? job, string? landline)
+        {
+            FullName = new PersonName(firstName, lastName);
+            Job = job?.Trim();
+            Landline = landline?.Trim();
+            UpdatedOn = DateTime.UtcNow;
+        }
+     
+        public void SetUserId(string userId)
+        {
+            UserId = userId;
+        }
+    }
+}
+
+// File: BackEnd.Domain\Entities\Identity\OtpRecord.cs
+using BackEnd.Domain.Common;
+
+namespace BackEnd.Domain.Entities.Identity
+{
+    public sealed class OtpRecord : BaseEntity<int>
+    {
+        public string Email { get; private set; } = null!;
+        public string Code { get; private set; } = null!;
+        public string Purpose { get; private set; } = null!; // "EmailVerification" | "PasswordReset"
+        public DateTime ExpiresAt { get; private set; }
+        public bool IsUsed { get; private set; } = false;
+
+        private OtpRecord() { }
+
+        public static OtpRecord Create(string email, string code, string purpose, int expiryMinutes = 10)
+        {
+            return new OtpRecord
+            {
+                Email = email.ToLowerInvariant().Trim(),
+                Code = code,
+                Purpose = purpose,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes),
+                IsUsed = false,
+                CreatedOn = DateTime.UtcNow
+            };
+        }
+
+        public bool IsValid() => !IsUsed && DateTime.UtcNow <= ExpiresAt;
+
+        public void MarkAsUsed()
+        {
+            IsUsed = true;
+            UpdatedOn = DateTime.UtcNow;
+        }
+    }
+}
+
+// File: BackEnd.Domain\Entities\Identity\StaffMember.cs
+// Domain/Entities/Identity/StaffMember.cs
+using BackEnd.Domain.Common;
+using BackEnd.Domain.Enums;
+using BackEnd.Domain.Interfaces;
+using BackEnd.Domain.ValueObjects;
+
+namespace BackEnd.Domain.Entities.Identity
+{
+    public sealed class StaffMember : BaseEntity<int>, IAggregateRoot
+    {
+        public string UserId { get; private set; } = null!;
+        public PersonName FullName { get; private set; } = null!;
+        public string Username { get; private set; } = null!;
+        public EmailAddress Email { get; private set; } = null!;
+        public PhoneNumber Phone { get; private set; } = null!;
+        public StaffType StaffType { get; private set; }
+        public AccountStatus AccountStatus { get; private set; }
+
+        public ApplicationUser? User { get; private set; }
+
+        private StaffMember() { }
+
+        public static StaffMember Create(
+            string userId,
+            string firstName, string lastName,
+            string username, string email, string phone,
+            StaffType staffType)
+        {
+            return new StaffMember
+            {
+                UserId = userId,
+                FullName = new PersonName(firstName, lastName),
+                Username = username.Trim(),
+                Email = new EmailAddress(email),
+                Phone = new PhoneNumber(phone),
+                StaffType = staffType,
+                AccountStatus = AccountStatus.Active,
+                CreatedOn = DateTime.UtcNow
+            };
+        }
+
+        public void SetAccountStatus(AccountStatus status)
+        {
+            AccountStatus = status;
+            UpdatedOn = DateTime.UtcNow;
+        }
+    }
+}
+
+// File: BackEnd.Domain\Entities\Notification\DeliveryArea.cs
+using BackEnd.Domain.Common;
+
+namespace BackEnd.Domain.Entities.Notification
+{
+    public sealed class DeliveryArea : BaseEntity<int>
+    {
+        public string Name { get; private set; } = null!;
+        public string Governorate { get; private set; } = null!;
+        public string City { get; private set; } = null!;
+        public bool IsActive { get; private set; }
+
+        private DeliveryArea() { }
+
+        public static DeliveryArea Create(string name, string governorate, string city)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Name is required.", nameof(name));
+            
+            if (string.IsNullOrWhiteSpace(governorate))
+                throw new ArgumentException("Governorate is required.", nameof(governorate));
+            
+            if (string.IsNullOrWhiteSpace(city))
+                throw new ArgumentException("City is required.", nameof(city));
+
+            return new DeliveryArea
+            {
+                Name = name.Trim(),
+                Governorate = governorate.Trim(),
+                City = city.Trim(),
+                IsActive = true,
+                CreatedOn = DateTime.UtcNow
+            };
+        }
+
+        public void Update(string name, string governorate, string city, bool isActive)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Name is required.");
+            
+            Name = name.Trim();
+            Governorate = governorate.Trim();
+            City = city.Trim();
+            IsActive = isActive;
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        public void Deactivate()
+        {
+            IsActive = false;
+            UpdatedOn = DateTime.UtcNow;
+        }
+    }
+}
+
+// File: BackEnd.Domain\Entities\Notification\Notification.cs
+using BackEnd.Domain.Common;
+using BackEnd.Domain.Entities.Identity;
+using BackEnd.Domain.Enums;
+
+namespace BackEnd.Domain.Entities.Notification
+{
+    public sealed class Notification : BaseEntity<int>
+    {
+        public int DonorId { get; private set; }
+        public NotificationType Type { get; private set; }
+        public string Title { get; private set; } = null!;
+        public string Message { get; private set; } = null!;
+        public bool IsRead { get; private set; } = false;
+        public DateTime? ReadAt { get; private set; }
+        public int? RelatedEntityId { get; private set; }
+
+        public Donor? Donor { get; private set; }
+
+        private Notification() { }
+
+        public static Notification Create(
+            int donorId, NotificationType type,
+            string title, string message,
+            int? relatedEntityId = null)
+        {
+            return new Notification
+            {
+                DonorId = donorId,
+                Type = type,
+                Title = title.Trim(),
+                Message = message.Trim(),
+                IsRead = false,
+                RelatedEntityId = relatedEntityId,
+                CreatedOn = DateTime.UtcNow
+            };
+        }
+
+        public void MarkAsRead()
+        {
+            IsRead = true;
+            ReadAt = DateTime.UtcNow;
+            UpdatedOn = DateTime.UtcNow;
+        }
+    }
+}
+
+// File: BackEnd.Domain\Entities\Payment\BranchAppointmentSlot.cs
+using BackEnd.Domain.Common;
+
+namespace BackEnd.Domain.Entities.Payment
+{
+    /// <summary>
+    /// موعد متاح في مقر الجمعية — يُنشئه الأدمن فقط
+    /// المتبرع يختار منه
+    /// </summary>
+    public sealed class BranchAppointmentSlot : BaseEntity<int>
+    {
+        public DateTime SlotDate { get; private set; }
+        public TimeSpan OpenFrom { get; private set; }
+        public TimeSpan OpenTo { get; private set; }
+        public int MaxCapacity { get; private set; }
+        public int BookedCount { get; private set; }
+        public bool IsActive { get; private set; }
+        public string? Notes { get; private set; }
+
+        private BranchAppointmentSlot() { }
+
+        public static BranchAppointmentSlot Create(
+            DateTime slotDate, TimeSpan openFrom, TimeSpan openTo,
+            int maxCapacity, string? notes = null)
+        {
+            if (slotDate.Date < DateTime.UtcNow.Date)
+                throw new ArgumentException("تاريخ الـ Slot يجب أن يكون اليوم أو في المستقبل.");
+
+            if (openFrom >= openTo)
+                throw new ArgumentException("وقت البداية يجب أن يكون قبل وقت النهاية.");
+
+            if (maxCapacity <= 0)
+                throw new ArgumentException("السعة القصوى يجب أن تكون أكبر من صفر.");
+
+            return new BranchAppointmentSlot
+            {
+                SlotDate = slotDate.Date.ToUniversalTime(),
+                OpenFrom = openFrom,
+                OpenTo = openTo,
+                MaxCapacity = maxCapacity,
+                BookedCount = 0,
+                IsActive = true,
+                Notes = notes?.Trim(),
+                CreatedOn = DateTime.UtcNow
+            };
+        }
+
+        /// <summary>هل الـ Slot متاح للحجز</summary>
+        public bool HasAvailableCapacity =>
+            IsActive && SlotDate.Date >= DateTime.UtcNow.Date && BookedCount < MaxCapacity;
+
+        public int AvailableSpots => MaxCapacity - BookedCount;
+
+        /// <summary>حجز مكان</summary>
+        public void Book()
+        {
+            if (!HasAvailableCapacity)
+                throw new InvalidOperationException("هذا الموعد ممتلئ أو غير متاح.");
+
+            BookedCount++;
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        /// <summary>إلغاء حجز — يُفرج عن مكان</summary>
+        public void Unbook()
+        {
+            if (BookedCount > 0)
+            {
+                BookedCount--;
+                UpdatedOn = DateTime.UtcNow;
+            }
+        }
+
+        public void Deactivate()
+        {
+            IsActive = false;
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        public void Activate()
+        {
+            IsActive = true;
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        public void UpdateCapacity(int newCapacity)
+        {
+            if (newCapacity < BookedCount)
+                throw new InvalidOperationException(
+                    $"السعة الجديدة ({newCapacity}) أقل من عدد الحجوزات الحالية ({BookedCount}).");
+
+            MaxCapacity = newCapacity;
+            UpdatedOn = DateTime.UtcNow;
+        }
+    }
+}
+
+// File: BackEnd.Domain\Entities\Payment\GeneralDonation.cs
+using BackEnd.Domain.Common;
+using BackEnd.Domain.Entities.Identity;
+using BackEnd.Domain.Enums;
+using BackEnd.Domain.Interfaces;
+using BackEnd.Domain.ValueObjects;
+
+namespace BackEnd.Domain.Entities.Payment
+{
+    public sealed class GeneralDonation : BaseEntity<int>, IAggregateRoot
+    {
+        public int DonorId { get; private set; }
+        public Money Amount { get; private set; } = null!;
+        public DonationType DonationType { get; private set; }
+        public string? Note { get; private set; }
+
+        public Donor? Donor { get; private set; }
+
+        private GeneralDonation() { }
+
+        public static GeneralDonation Create(
+            int donorId, decimal amount,
+            DonationType donationType, string? note = null)
+        {
+            if (amount <= 0)
+                throw new Exceptions.InvalidMoneyAmountException(amount);
+
+            return new GeneralDonation
+            {
+                DonorId = donorId,
+                Amount = new Money(amount),
+                DonationType = donationType,
+                Note = note?.Trim(),
+                CreatedOn = DateTime.UtcNow
+            };
+        }
+    }
+}
+
+// File: BackEnd.Domain\Entities\Payment\InKindDonation.cs
+using BackEnd.Domain.Common;
+using BackEnd.Domain.Entities.Identity;
+using BackEnd.Domain.Exceptions;
+
+namespace BackEnd.Domain.Entities.Payment
+{
+    public sealed class InKindDonation : BaseEntity<int>
+    {
+        public int DonorId { get; private set; }
+        public string DonationTypeName { get; private set; } = null!;
+        public int Quantity { get; private set; }
+        public string? Description { get; private set; }
+        public int RecordedByStaffId { get; private set; }
+        public DateTime RecordedAt { get; private set; }
+
+        public Donor? Donor { get; private set; }
+        public StaffMember? RecordedBy { get; private set; }
+
+        private InKindDonation() { }
+        public void Update(string donationTypeName, int quantity, string? description)
+        {
+            if (quantity <= 0)
+                throw new ArgumentException("Invalid quantity");
+
+            if (string.IsNullOrWhiteSpace(donationTypeName))
+                throw new ArgumentException("Donation type required");
+
+            DonationTypeName = donationTypeName.Trim();
+            Quantity = quantity;
+            Description = description?.Trim();
+        }
+        public static InKindDonation Create(
+            int donorId, string donationTypeName,
+            int quantity, string? description, int recordedByStaffId)
+        {
+            if (quantity <= 0)
+                throw new ArgumentException("Quantity must be > 0.", nameof(quantity));
+            if (string.IsNullOrWhiteSpace(donationTypeName))
+                throw new ArgumentException("Donation type name is required.");
+
+            return new InKindDonation
+            {
+                DonorId = donorId,
+                DonationTypeName = donationTypeName.Trim(),
+                Quantity = quantity,
+                Description = description?.Trim(),
+                RecordedByStaffId = recordedByStaffId,
+                RecordedAt = DateTime.UtcNow,
+                CreatedOn = DateTime.UtcNow
+            };
+        }
+    }
+}
+
+// File: BackEnd.Domain\Entities\Payment\PaymentRequest.cs
+using BackEnd.Domain.Common;
+using BackEnd.Domain.Entities.EmergencyCase;
+using BackEnd.Domain.Entities.Identity;
+using BackEnd.Domain.Entities.Sponsorship;
+using BackEnd.Domain.Enums;
+using BackEnd.Domain.Events;
+using BackEnd.Domain.Exceptions;
+using BackEnd.Domain.Interfaces;
+using BackEnd.Domain.ValueObjects;
+
+namespace BackEnd.Domain.Entities.Payment
+{
+    public sealed class PaymentRequest : BaseEntity<int>, IAggregateRoot
+    {
+        public int DonorId { get; private set; }
+        public Donor? Donor { get; private set; }
+
+        public PaymentTargetType TargetType { get; private set; }
+        public int? TargetId { get; private set; } // Generic ID to support various targets if needed
+
+        public int? SubscriptionId { get; private set; }
+        public SponsorshipSubscription? Subscription { get; private set; }
+        
+        public int? EmergencyCaseId { get; private set; }
+        public EmergencyCase.EmergencyCase? EmergencyCase { get; private set; }
+
+        public int? GeneralDonationId { get; private set; }
+        
+        public Money Amount { get; private set; } = null!;
+        public PaymentMethod Method { get; private set; }
+        public PaymentStatus Status { get; private set; }
+
+        // VodafoneCash / InstaPay
+        public string? ReceiptImageUrl { get; private set; }
+        public string? ReceiptImagePublicId { get; private set; }
+        public string? ReceiptImagePath => ReceiptImageUrl;
+        public string? SenderPhoneNumber { get; private set; }
+
+        // Branch
+        public BranchPaymentDetails? BranchDetails { get; private set; }
+
+        // Representative
+        public RepresentativeDetails? RepresentativeInfo { get; private set; }
+
+        // Staff review
+        public int? VerifiedByStaffId { get; private set; }
+        public DateTime? VerifiedAt { get; private set; }
+        public string? RejectionReason { get; private set; }
+
+        private PaymentRequest() { }
+
+        private static PaymentRequest CreateBase(
+            int donorId, Money amount, PaymentMethod method,
+            int? subscriptionId = null, int? emergencyCaseId = null, int? generalDonationId = null)
+        {
+            ValidateReference(subscriptionId, emergencyCaseId, generalDonationId);
+
+            var targetType = subscriptionId.HasValue ? PaymentTargetType.Subscription 
+                           : emergencyCaseId.HasValue ? PaymentTargetType.EmergencyCase 
+                           : PaymentTargetType.GeneralDonation;
+
+            return new PaymentRequest
+            {
+                DonorId = donorId,
+                TargetType = targetType,
+                TargetId = subscriptionId ?? emergencyCaseId ?? generalDonationId,
+                SubscriptionId = subscriptionId,
+                EmergencyCaseId = emergencyCaseId,
+                GeneralDonationId = generalDonationId,
+                Amount = amount,
+                Method = method,
+                Status = PaymentStatus.Pending,
+                CreatedOn = DateTime.UtcNow
+            };
+        }
+
+        /// <summary>إنشاء طلب دفع إلكتروني (VodafoneCash أو InstaPay)</summary>
+        public static PaymentRequest CreateElectronic(
+            int donorId, int? subscriptionId, int? emergencyCaseId, int? generalDonationId,
+            Money amount, PaymentMethod method,
+            string receiptImageUrl, string receiptImagePublicId, string senderPhoneNumber)
+        {
+            if (method is not (PaymentMethod.VodafoneCash or PaymentMethod.InstaPay))
+                throw new InvalidPaymentRequestException("هذا الـ Factory مخصص لـ VodafoneCash أو InstaPay فقط.");
+
+            if (string.IsNullOrWhiteSpace(receiptImageUrl))
+                throw new InvalidPaymentRequestException("صورة الإيصال مطلوبة.");
+            if (string.IsNullOrWhiteSpace(receiptImagePublicId))
+                throw new InvalidPaymentRequestException("معرّف صورة الإيصال مطلوب.");
+            if (string.IsNullOrWhiteSpace(senderPhoneNumber))
+                throw new InvalidPaymentRequestException("رقم الهاتف المُحوَّل منه مطلوب.");
+
+            var payment = CreateBase(donorId, amount, method, subscriptionId, emergencyCaseId, generalDonationId);
+            payment.ReceiptImageUrl = receiptImageUrl;
+            payment.ReceiptImagePublicId = receiptImagePublicId;
+            payment.SenderPhoneNumber = senderPhoneNumber.Trim();
+            
+            return payment;
+        }
+
+        /// <summary>إنشاء طلب دفع في الفرع</summary>
+        public static PaymentRequest CreateBranch(
+            int donorId, int? subscriptionId, int? emergencyCaseId, int? generalDonationId,
+            Money amount, BranchPaymentDetails branchDetails)
+        {
+            var payment = CreateBase(donorId, amount, PaymentMethod.Branch, subscriptionId, emergencyCaseId, generalDonationId);
+            payment.BranchDetails = branchDetails ?? throw new ArgumentNullException(nameof(branchDetails));
+            return payment;
+        }
+
+        /// <summary>إنشاء طلب مندوب</summary>
+        public static PaymentRequest CreateRepresentative(
+            int donorId, int? subscriptionId, int? emergencyCaseId, int? generalDonationId,
+            Money amount, RepresentativeDetails repDetails)
+        {
+            var payment = CreateBase(donorId, amount, PaymentMethod.Representative, subscriptionId, emergencyCaseId, generalDonationId);
+            payment.RepresentativeInfo = repDetails ?? throw new ArgumentNullException(nameof(repDetails));
+            return payment;
+        }
+
+        /// <summary>تأكيد الدفع من الـ Staff</summary>
+        public void Verify(int staffId)
+        {
+            if (Status != PaymentStatus.Pending)
+                throw new InvalidPaymentRequestException($"لا يمكن تأكيد طلب بحالة '{Status}'.");
+
+            Status = PaymentStatus.Verified;
+            VerifiedByStaffId = staffId;
+            VerifiedAt = DateTime.UtcNow;
+            UpdatedOn = DateTime.UtcNow;
+
+            AddDomainEvent(new PaymentVerifiedEvent(
+                Id, SubscriptionId, GeneralDonationId, EmergencyCaseId,
+                Amount.Amount, staffId));
+        }
+
+        /// <summary>رفض الدفع من الـ Staff</summary>
+        public void Reject(int staffId, string reason)
+        {
+            if (Status != PaymentStatus.Pending)
+                throw new InvalidPaymentRequestException($"لا يمكن رفض طلب بحالة '{Status}'.");
+
+            if (string.IsNullOrWhiteSpace(reason))
+                throw new ArgumentException("سبب الرفض مطلوب.");
+
+            Status = PaymentStatus.Rejected;
+            VerifiedByStaffId = staffId;
+            RejectionReason = reason.Trim();
+            UpdatedOn = DateTime.UtcNow;
+
+            AddDomainEvent(new PaymentRejectedEvent(Id, DonorId, RejectionReason));
+        }
+
+        private static void ValidateReference(int? subscriptionId, int? emergencyCaseId, int? generalDonationId)
+        {
+            int count = 0;
+            if (subscriptionId.HasValue) count++;
+            if (emergencyCaseId.HasValue) count++;
+            if (generalDonationId.HasValue) count++;
+
+            if (count != 1)
+                throw new InvalidPaymentRequestException("يجب ربط الطلب بهدف واحد فقط (اشتراك أو حالة طوارئ أو تبرع عام).");
+        }
+    }
+}
+
+// File: BackEnd.Domain\Entities\Sponsorships\Sponsorship.cs
+using BackEnd.Domain.Common;
+using BackEnd.Domain.Enums;
+using BackEnd.Domain.Events;
+using BackEnd.Domain.Exceptions;
+using BackEnd.Domain.Interfaces;
+using BackEnd.Domain.ValueObjects;
+
+namespace BackEnd.Domain.Entities.Sponsorship
+{
+    public sealed class Sponsorship : BaseEntity<int>, IAggregateRoot
+    {
+        public string Name { get; private set; } = null!;
+        public string Description { get; private set; } = null!;
+        public string? ImagePath { get; private set; }
+        public string? ImagePublicId { get; private set; }
+        public string? IconPath { get; private set; }
+        public string? IconPublicId { get; private set; }
+        public string Category { get; private set; } = null!;
+        public SponsorshipStatus Status { get; private set; }
+        public UrgencyLevel UrgencyLevel { get; private set; }
+        public Money? FinancialGoal { get; private set; }
+        public Money TotalCollected { get; private set; } = null!;
+        public SponsorshipPolicy Policy { get; private set; } = null!;
+
+        private Sponsorship() { }
+
+        public static Sponsorship Create(
+            string name, string description, string category,
+            Money? financialGoal = null, SponsorshipPolicy? policy = null)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Name is required.", nameof(name));
+            if (string.IsNullOrWhiteSpace(description))
+                throw new ArgumentException("Description is required.", nameof(description));
+
+            return new Sponsorship
+            {
+                Name = name.Trim(),
+                Description = description.Trim(),
+                Category = category.Trim(),
+                Status = SponsorshipStatus.Active,
+                UrgencyLevel = UrgencyLevel.Normal,
+                FinancialGoal = financialGoal,
+                TotalCollected = Money.Zero(),
+                Policy = policy ?? SponsorshipPolicy.Default,
+                CreatedOn = DateTime.UtcNow
+            };
+        }
+
+        public void Activate() { Status = SponsorshipStatus.Active; UpdatedOn = DateTime.UtcNow; }
+        public void Deactivate() { Status = SponsorshipStatus.Inactive; UpdatedOn = DateTime.UtcNow; }
+
+        public void UpdateDetails(string name, string description, Money? financialGoal)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Name is required.", nameof(name));
+            if (string.IsNullOrWhiteSpace(description))
+                throw new ArgumentException("Description is required.", nameof(description));
+
+            Name = name.Trim();
+            Description = description.Trim();
+            FinancialGoal = financialGoal;
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        public void SetUrgencyLevel(UrgencyLevel level)
+        {
+            if (UrgencyLevel == level) return;
+            UrgencyLevel = level;
+            UpdatedOn = DateTime.UtcNow;
+            AddDomainEvent(new SponsorshipUrgencyChangedEvent(Id, level));
+        }
+
+        public void UpdatePolicy(SponsorshipPolicy policy)
+        {
+            Policy = policy ?? throw new ArgumentNullException(nameof(policy));
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        public void AddToTotalCollected(Money amount)
+        {
+            TotalCollected = TotalCollected.Add(amount);
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        public void UpdateImages(string? imagePath, string? imagePublicId, string? iconPath, string? iconPublicId = null)
+        {
+            ImagePath = imagePath;
+            ImagePublicId = imagePublicId;
+            IconPath = iconPath;
+            IconPublicId = iconPublicId;
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        public bool IsActive => Status == SponsorshipStatus.Active;
+    }
+}
+
+// File: BackEnd.Domain\Entities\Sponsorships\SponsorshipSubscription.cs
+using BackEnd.Domain.Common;
+using BackEnd.Domain.Entities.Identity;
+using BackEnd.Domain.Enums;
+using BackEnd.Domain.Events;
+using BackEnd.Domain.Exceptions;
+using BackEnd.Domain.ValueObjects;
+
+namespace BackEnd.Domain.Entities.Sponsorship
+{
+    public sealed class SponsorshipSubscription : BaseEntity<int>
+    {
+        public int DonorId { get; private set; }
+        public int SponsorshipId { get; private set; }
+        public Money Amount { get; private set; } = null!;
+        public PaymentCycle PaymentCycle { get; private set; }
+        public SubscriptionStatus Status { get; private set; }
+        public DateTime StartDate { get; private set; }
+        public DateTime NextPaymentDate { get; private set; }
+        public DateTime? CancelledAt { get; private set; }
+        public string? CancelReason { get; private set; }
+
+        public Donor? Donor { get; private set; }
+        public Sponsorship? Sponsorship { get; private set; }
+
+        private SponsorshipSubscription() { }
+
+        public static SponsorshipSubscription Create(
+            int donorId, int sponsorshipId,
+            Sponsorship sponsorship,
+            Money amount, PaymentCycle cycle)
+        {
+            if (!sponsorship.IsActive)
+                throw new SponsorshipNotActiveException(sponsorshipId);
+            if (amount.Amount <= 0)
+                throw new InvalidMoneyAmountException(amount.Amount);
+
+            var startDate = DateTime.UtcNow;
+            var sub = new SponsorshipSubscription
+            {
+                DonorId = donorId,
+                SponsorshipId = sponsorshipId,
+                Amount = amount,
+                PaymentCycle = cycle,
+                Status = SubscriptionStatus.Active,
+                StartDate = startDate,
+                NextPaymentDate = startDate.AddMonths((int)cycle),
+                CreatedOn = startDate
+            };
+
+            sub.AddDomainEvent(new SubscriptionCreatedEvent(0, donorId, sponsorshipId));
+            return sub;
+        }
+
+        /// <summary>تحديث قيمة الاشتراك</summary>
+        public void UpdateAmount(Money newAmount)
+        {
+            if (Status is SubscriptionStatus.Cancelled or SubscriptionStatus.Expired)
+                throw new InvalidSubscriptionOperationException(
+                    "لا يمكن تعديل اشتراك ملغي أو منتهي.");
+            if (newAmount.Amount <= 0)
+                throw new InvalidMoneyAmountException(newAmount.Amount);
+
+            Amount = newAmount;
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        /// <summary>تحديث دورة الدفع</summary>
+        public void UpdatePaymentCycle(PaymentCycle newCycle)
+        {
+            if (Status is SubscriptionStatus.Cancelled or SubscriptionStatus.Expired)
+                throw new InvalidSubscriptionOperationException(
+                    "لا يمكن تعديل اشتراك ملغي أو منتهي.");
+
+            PaymentCycle = newCycle;
+            // إعادة حساب الدفعة القادمة من تاريخ اليوم
+            NextPaymentDate = DateTime.UtcNow.AddMonths((int)newCycle);
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        /// <summary>إلغاء الاشتراك</summary>
+        public void Cancel(string? reason = null)
+        {
+            if (Status == SubscriptionStatus.Cancelled)
+                throw new InvalidSubscriptionOperationException("الاشتراك ملغي بالفعل.");
+
+            Status = SubscriptionStatus.Cancelled;
+            CancelledAt = DateTime.UtcNow;
+            CancelReason = reason?.Trim();
+            UpdatedOn = DateTime.UtcNow;
+
+            AddDomainEvent(new SubscriptionCancelledEvent(Id, DonorId, reason));
+        }
+
+        /// <summary>تعليق الاشتراك (بسبب تأخر الدفع)</summary>
+        public void Suspend()
+        {
+            if (Status != SubscriptionStatus.Active)
+                throw new InvalidSubscriptionOperationException(
+                    "يمكن تعليق الاشتراكات النشطة فقط.");
+
+            Status = SubscriptionStatus.Suspended;
+            UpdatedOn = DateTime.UtcNow;
+            AddDomainEvent(new LatePaymentDetectedEvent(Id, DonorId, NextPaymentDate));
+        }
+
+        /// <summary>تقديم تاريخ الدفعة القادمة بعد التأكيد</summary>
+        public void AdvancePaymentDate()
+        {
+            // إذا كان المتبرع متأخراً (تاريخ اليوم تجاوز تاريخ الدفعة القادمة)، نبدأ الحساب من اليوم
+            // وإلا، نضيف المدة على التاريخ الموجود أصلاً (للحفاظ على دورية الدفع)
+            var baseDate = DateTime.UtcNow > NextPaymentDate ? DateTime.UtcNow : NextPaymentDate;
+            
+            NextPaymentDate = baseDate.AddMonths((int)PaymentCycle);
+
+            if (Status == SubscriptionStatus.Suspended)
+                Status = SubscriptionStatus.Active;
+                
+            UpdatedOn = DateTime.UtcNow;
+        }
+
+        public bool IsLate(int gracePeriodDays) =>
+            Status == SubscriptionStatus.Active &&
+            DateTime.UtcNow > NextPaymentDate.AddDays(gracePeriodDays);
+    }
+}

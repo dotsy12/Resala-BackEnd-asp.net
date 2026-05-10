@@ -56,8 +56,7 @@ namespace BackEnd.Infrastructure.DependencyInjection
                     }
                     else
                     {
-                        // Fail-fast if credentials are expected but missing
-                        throw new FileNotFoundException($"Firebase credentials file not found at: {fullPath}");
+                        Console.WriteLine($"Firebase credentials file not found at: {fullPath}. Firebase registration was skipped.");
                     }
                 }
             }
