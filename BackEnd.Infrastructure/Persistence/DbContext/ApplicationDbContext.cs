@@ -36,6 +36,7 @@ namespace BackEnd.Infrastructure.Persistence.DbContext
         public DbSet<DeliveryArea> DeliveryAreas { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<BranchAppointmentSlot> BranchAppointmentSlots { get; set; }
+        public DbSet<PaymentNumber> PaymentNumbers { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

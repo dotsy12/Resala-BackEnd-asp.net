@@ -52,6 +52,7 @@ namespace BackEnd.Infrastructure.InfrastructureDependencies
             services.AddScoped<IDeviceTokenRepository, DeviceTokenRepository>();
             services.AddScoped<IFinancialAnalysisRepository, FinancialAnalysisRepository>();
             services.AddScoped<IDashboardRepository, DashboardRepository>();
+            services.AddScoped<IPaymentNumberRepository, PaymentNumberRepository>();
 
             services.AddHostedService<TokenCleanupBackgroundJob>();
 
