@@ -39,6 +39,8 @@ namespace BackEnd.Application.Features.EmergencyCase.Queries.GetPendingEmergency
             var result = payments.Select(p => new PaymentRequestSummaryDto(
                 Id: p.Id,
                 SubscriptionId: p.SubscriptionId,
+                SponsorshipId: null,
+                SponsorshipTitle: null,
                 EmergencyCaseId: p.EmergencyCaseId,
                 EmergencyCaseTitle: p.EmergencyCase?.Title,
                 UserName: $"{p.Donor?.FullName.FirstName} {p.Donor?.FullName.LastName}",

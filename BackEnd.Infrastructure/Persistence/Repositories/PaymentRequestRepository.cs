@@ -17,6 +17,8 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
         public Task<PaymentRequest?> GetByIdAsync(int id, CancellationToken ct = default)
             => _db.PaymentRequests
                 .Include(p => p.Subscription)
+                    .ThenInclude(s => s.Sponsorship)
+                .Include(p => p.Subscription)
                     .ThenInclude(s => s.Donor)
                         .ThenInclude(d => d.User)
                 .Include(p => p.EmergencyCase)
@@ -69,6 +71,7 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
                 .Include(p => p.Donor)
                     .ThenInclude(d => d.User)
                 .Include(p => p.Subscription)
+                    .ThenInclude(s => s.Sponsorship)
                 .Include(p => p.EmergencyCase)
                 .Where(p => p.Status == PaymentStatus.Pending);
 
@@ -89,6 +92,7 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
                 .Include(p => p.Donor)
                     .ThenInclude(d => d.User)
                 .Include(p => p.Subscription)
+                    .ThenInclude(s => s.Sponsorship)
                 .Include(p => p.EmergencyCase)
                 .Where(p => p.Method == method && p.Status == PaymentStatus.Pending);
 

@@ -4,6 +4,7 @@ using BackEnd.Application.Features.Admin.Dashboard.Queries.GetDonationTypeStats;
 using BackEnd.Application.Features.Admin.Dashboard.Queries.GetEmergencyCaseStats;
 using BackEnd.Application.Features.Admin.Dashboard.Queries.GetMonthlyDonationTrend;
 using BackEnd.Application.Features.Admin.Dashboard.Queries.GetOverview;
+using BackEnd.Application.Features.Admin.Dashboard.Queries.GetSponsorshipStats;
 using BackEnd.Application.Features.Admin.Dashboard.Queries.GetUserStats;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -105,13 +106,30 @@ namespace BackEndApi.Controllers
         [ProducesResponseType(typeof(Result<UserStatsDto>), StatusCodes.Status200OK)]
         [SwaggerOperation(
             Summary = "[Admin] إحصائيات المستخدمين",
-            Description = "يرجع إحصائيات المستخدمين، المتبرعين، النشطين، والجدد، مع توزيع حسب الأدوار.",
+            Description = "يرجع إحصائيات المستخدمين، المتبرعين، النشطين، الجدد، وتوزيع المشتركين في الكفالات.",
             OperationId = "AdminDashboard_GetUsers",
             Tags = new[] { "Admin Dashboard" }
         )]
         public async Task<ActionResult<Result<UserStatsDto>>> GetUserStats(CancellationToken ct)
         {
             var result = await _mediator.Send(new GetUserStatsQuery(), ct);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// [Admin] إحصائيات الكفالات
+        /// </summary>
+        [HttpGet("sponsorships-stats")]
+        [ProducesResponseType(typeof(Result<SponsorshipStatsDto>), StatusCodes.Status200OK)]
+        [SwaggerOperation(
+            Summary = "[Admin] إحصائيات الكفالات",
+            Description = "يرجع توزيع الكفالات حسب النوع مع المبالغ المحصلة وعدد المتبرعين لكل كفالة.",
+            OperationId = "AdminDashboard_GetSponsorships",
+            Tags = new[] { "Admin Dashboard" }
+        )]
+        public async Task<ActionResult<Result<SponsorshipStatsDto>>> GetSponsorshipStats(CancellationToken ct)
+        {
+            var result = await _mediator.Send(new GetSponsorshipStatsQuery(), ct);
             return Ok(result);
         }
     }

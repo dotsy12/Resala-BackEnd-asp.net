@@ -72,42 +72,35 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
 
         public async Task<EmergencyCaseStatsDto> GetEmergencyCaseStatsAsync(CancellationToken ct = default)
         {
-            var allCases = await _db.EmergencyCases
-                .Select(c => new
-                {
-                    c.Id,
-                    c.Title,
-                    c.IsActive,
-                    c.UrgencyLevel,
-                    RequiredAmount = c.RequiredAmount.Amount,
-                    CollectedAmount = c.CollectedAmount.Amount
-                })
-                .ToListAsync(ct);
+            var casesQuery = _db.EmergencyCases.AsNoTracking();
 
-            var totalCases = allCases.Count;
-            var activeCases = allCases.Count(c => c.IsActive);
-            var completedCases = allCases.Count(c => c.CollectedAmount >= c.RequiredAmount);
-            var criticalCases = allCases.Count(c => c.UrgencyLevel == UrgencyLevel.Critical);
-            var totalCollected = allCases.Sum(c => c.CollectedAmount);
+            var totalCases = await casesQuery.CountAsync(ct);
+            var activeCases = await casesQuery.CountAsync(c => c.IsActive, ct);
+            var completedCases = await casesQuery.CountAsync(c => c.CollectedAmount.Amount >= c.RequiredAmount.Amount, ct);
+            var criticalCases = await casesQuery.CountAsync(c => c.UrgencyLevel == UrgencyLevel.Critical, ct);
+            var totalCollected = await casesQuery.SumAsync(c => (decimal?)c.CollectedAmount.Amount ?? 0, ct);
 
-            var topCases = allCases
-                .OrderByDescending(c => c.CollectedAmount)
+            var topCases = await casesQuery
+                .OrderByDescending(c => c.CollectedAmount.Amount)
                 .Take(5)
                 .Select(c => new TopEmergencyCaseDto
                 {
                     CaseId = c.Id,
                     Title = c.Title,
-                    CollectedAmount = c.CollectedAmount,
-                    TargetAmount = c.RequiredAmount,
-                    DonorsCount = _db.PaymentRequests.Count(p => p.EmergencyCaseId == c.Id && p.Status == PaymentStatus.Verified)
+                    CollectedAmount = c.CollectedAmount.Amount,
+                    TargetAmount = c.RequiredAmount.Amount,
+                    DonorsCount = _db.PaymentRequests
+                        .Count(p => p.EmergencyCaseId == c.Id && p.Status == PaymentStatus.Verified)
                 })
-                .ToList();
+                .ToListAsync(ct);
+
+            var stoppedCount = await casesQuery.CountAsync(c => !c.IsActive && c.CollectedAmount.Amount < c.RequiredAmount.Amount, ct);
 
             var statusDistribution = new List<StatusDistributionDto>
             {
                 new() { Status = "نشطة", Count = activeCases },
                 new() { Status = "مكتملة", Count = completedCases },
-                new() { Status = "متوقفة", Count = allCases.Count(c => !c.IsActive && c.CollectedAmount < c.RequiredAmount) }
+                new() { Status = "متوقفة", Count = stoppedCount }
             };
 
             return new EmergencyCaseStatsDto
@@ -166,6 +159,12 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
             var thisYear = DateTime.UtcNow.Year;
             var newUsersThisMonth = await _db.Users.CountAsync(u => u.CreatedOn.Month == thisMonth && u.CreatedOn.Year == thisYear, ct);
 
+            var subscribedUsers = await _db.SponsorshipSubscriptions
+                .Where(s => s.Status == SubscriptionStatus.Active)
+                .Select(s => s.DonorId)
+                .Distinct()
+                .CountAsync(ct);
+
             // Group by Role
             // This is a bit tricky with ASP.NET Identity, but let's assume we can join Users and UserRoles
             var roleDistribution = await (from userRole in _db.UserRoles
@@ -183,7 +182,33 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
                 TotalDonors = totalDonors,
                 ActiveUsers = activeUsers,
                 NewUsersThisMonth = newUsersThisMonth,
+                SubscribedUsers = subscribedUsers,
+                NonSubscribedUsers = totalUsers - subscribedUsers,
                 UsersByRole = roleDistribution
+            };
+        }
+
+        public async Task<SponsorshipStatsDto> GetSponsorshipStatsAsync(CancellationToken ct = default)
+        {
+            var topSponsorships = await _db.Sponsorships
+                .Select(s => new TopSponsorshipDto
+                {
+                    SponsorshipId = s.Id,
+                    Title = s.Name,
+                    CollectedAmount = s.TotalCollected.Amount,
+                    TargetAmount = s.FinancialGoal != null ? s.FinancialGoal.Amount : 0,
+                    DonorsCount = _db.PaymentRequests
+                        .Where(p => p.Subscription!.SponsorshipId == s.Id && p.Status == PaymentStatus.Verified)
+                        .Select(p => p.DonorId)
+                        .Distinct()
+                        .Count()
+                })
+                .OrderByDescending(x => x.CollectedAmount)
+                .ToListAsync(ct);
+
+            return new SponsorshipStatsDto
+            {
+                TopSponsorships = topSponsorships
             };
         }
 

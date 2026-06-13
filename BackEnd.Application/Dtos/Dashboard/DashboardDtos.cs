@@ -58,7 +58,23 @@ namespace BackEnd.Application.Dtos.Dashboard
         public int TotalDonors { get; set; }
         public int ActiveUsers { get; set; }
         public int NewUsersThisMonth { get; set; }
+        public int SubscribedUsers { get; set; }
+        public int NonSubscribedUsers { get; set; }
         public List<RoleDistributionDto> UsersByRole { get; set; } = new();
+    }
+
+    public class SponsorshipStatsDto
+    {
+        public List<TopSponsorshipDto> TopSponsorships { get; set; } = new();
+    }
+
+    public class TopSponsorshipDto
+    {
+        public int SponsorshipId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public decimal CollectedAmount { get; set; }
+        public decimal TargetAmount { get; set; }
+        public int DonorsCount { get; set; }
     }
 
     public class RoleDistributionDto

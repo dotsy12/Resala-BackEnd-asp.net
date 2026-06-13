@@ -18,6 +18,8 @@ namespace BackEnd.Application.Dtos.Subscription
     public record PaymentRequestSummaryDto(
         int Id,
         int? SubscriptionId,
+        int? SponsorshipId,          // Added
+        string? SponsorshipTitle,     // Added
         int? EmergencyCaseId,
         string? EmergencyCaseTitle,
         string? UserName,
@@ -42,6 +44,8 @@ namespace BackEnd.Application.Dtos.Subscription
     public record PaymentRequestDetailDto(
         int PaymentId,
         int? SubscriptionId,
+        int? SponsorshipId,          // Added
+        string? SponsorshipTitle,     // Added
         int? EmergencyCaseId,
         string? EmergencyCaseTitle,
         string UserId,

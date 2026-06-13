@@ -84,12 +84,14 @@ namespace BackEnd.Application.Features.Subscriptions.Commands.SubmitPayment
             await _paymentRepo.SaveChangesAsync(ct);
 
             return Result<PaymentRequestSummaryDto>.Success(
-                MapToDto(paymentRequest), "تم استلام طلب الدفع الإلكتروني بنجاح.");
+                MapToDto(paymentRequest, subscription.SponsorshipId, subscription.Sponsorship?.Name), "تم استلام طلب الدفع الإلكتروني بنجاح.");
         }
 
-        private static PaymentRequestSummaryDto MapToDto(PaymentRequest p) => new(
+        private static PaymentRequestSummaryDto MapToDto(PaymentRequest p, int? sponsorshipId = null, string? sponsorshipTitle = null) => new(
             Id: p.Id,
             SubscriptionId: p.SubscriptionId,
+            SponsorshipId: sponsorshipId,
+            SponsorshipTitle: sponsorshipTitle,
             EmergencyCaseId: p.EmergencyCaseId,
             EmergencyCaseTitle: p.EmergencyCase?.Title,
             UserName: null, 

@@ -27,6 +27,8 @@ namespace BackEnd.Application.Features.Subscriptions.Queries.GetPendingPayments
             return new(
                 Id: p.Id,
                 SubscriptionId: p.SubscriptionId,
+                SponsorshipId: p.Subscription?.SponsorshipId,
+                SponsorshipTitle: p.Subscription?.Sponsorship?.Name,
                 EmergencyCaseId: p.EmergencyCaseId,
                 EmergencyCaseTitle: p.EmergencyCase?.Title,
                 UserName: user != null ? $"{user.FirstName} {user.LastName}".Trim() : null,

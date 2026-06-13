@@ -12,5 +12,6 @@ namespace BackEnd.Application.Interfaces.Repositories
         Task<EmergencyCaseStatsDto> GetEmergencyCaseStatsAsync(CancellationToken ct = default);
         Task<List<MonthlyDonationTrendDto>> GetMonthlyDonationTrendAsync(CancellationToken ct = default);
         Task<UserStatsDto> GetUserStatsAsync(CancellationToken ct = default);
+        Task<SponsorshipStatsDto> GetSponsorshipStatsAsync(CancellationToken ct = default);
     }
 }

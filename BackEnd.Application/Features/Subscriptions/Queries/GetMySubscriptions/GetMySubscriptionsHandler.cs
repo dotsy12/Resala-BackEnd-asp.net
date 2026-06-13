@@ -40,6 +40,8 @@ namespace BackEnd.Application.Features.Subscriptions.Queries.GetMySubscriptions
                     .Select(p => new PaymentRequestSummaryDto(
                         Id: p.Id,
                         SubscriptionId: p.SubscriptionId,
+                        SponsorshipId: s.SponsorshipId,
+                        SponsorshipTitle: s.Sponsorship?.Name,
                         EmergencyCaseId: p.EmergencyCaseId,
                         EmergencyCaseTitle: p.EmergencyCase?.Title,
                         UserName: null,

@@ -39,6 +39,8 @@ namespace BackEnd.Application.Features.Subscriptions.Queries.GetPaymentDetails
             var dto = new PaymentRequestDetailDto(
                 PaymentId: p.Id,
                 SubscriptionId: p.SubscriptionId,
+                SponsorshipId: p.Subscription?.SponsorshipId,
+                SponsorshipTitle: p.Subscription?.Sponsorship?.Name,
                 EmergencyCaseId: p.EmergencyCaseId,
                 EmergencyCaseTitle: p.EmergencyCase?.Title,
                 UserId: user?.Id ?? "",

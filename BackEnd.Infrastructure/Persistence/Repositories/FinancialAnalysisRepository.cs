@@ -25,28 +25,37 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
 
         public async Task<GlobalDashboardAnalyticsDto> GetGlobalDashboardAnalyticsAsync(CancellationToken ct = default)
         {
+            // 1. Basic Stats
             var totalUsers = await _db.Users.CountAsync(ct);
             var totalDonors = await _db.Donors.CountAsync(ct);
-            
+
+            // 2. Sponsorship Subscriptions Stats (Active)
             var activeSubscriptions = await _db.SponsorshipSubscriptions
                 .Where(s => s.Status == SubscriptionStatus.Active)
-                .Select(s => new { s.DonorId, s.Amount, s.PaymentCycle })
+                .Select(s => new { s.DonorId, Amount = s.Amount.Amount, s.PaymentCycle })
                 .ToListAsync(ct);
 
             var totalActiveSponsors = activeSubscriptions.Select(s => s.DonorId).Distinct().Count();
-            
-            // Expected monthly revenue = Sum(Amount / PaymentCycle_in_months)
-            var totalMonthlyExpectedRevenue = activeSubscriptions.Sum(s => s.Amount.Amount / (int)s.PaymentCycle);
 
+            // Expected monthly revenue = Sum(Amount / (int)PaymentCycle)
+            // Fix: Ensure PaymentCycle is treated as a decimal and handled safely
+            decimal totalMonthlyExpectedRevenue = activeSubscriptions
+                .Sum(s => s.Amount / Math.Max(1, (int)s.PaymentCycle));
+
+            // 3. Collected Revenue (Verified Subscription Payments)
             var verifiedSubscriptionPayments = await _db.PaymentRequests
                 .Where(p => p.TargetType == PaymentTargetType.Subscription && p.Status == PaymentStatus.Verified)
-                .SumAsync(p => p.Amount.Amount, ct);
+                .SumAsync(p => (decimal?)p.Amount.Amount ?? 0, ct);
 
-            // To calculate "Remaining Revenue" system-wide, we need all subscriptions' expected vs paid.
-            // This could be heavy, so we calculate it efficiently in memory for all subscriptions
+            // 4. Calculate Total Remaining Revenue
+            // Optimization: Get all necessary subscription info and their total paid amounts in two efficient queries
             var allSubscriptions = await _db.SponsorshipSubscriptions
                 .Select(s => new { 
-                    s.Id, s.Amount, s.PaymentCycle, s.StartDate, s.Status 
+                    s.Id, 
+                    Amount = s.Amount.Amount, 
+                    PaymentCycle = (int)s.PaymentCycle, 
+                    s.StartDate, 
+                    s.Status 
                 })
                 .ToListAsync(ct);
                 
@@ -57,14 +66,20 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
                 .ToDictionaryAsync(g => g.SubId, g => g.Paid, ct);
 
             decimal totalRemainingRevenue = 0;
+            var now = DateTime.UtcNow;
+
             foreach (var sub in allSubscriptions)
             {
-                int monthsPassed = ((DateTime.UtcNow.Year - sub.StartDate.Year) * 12) + DateTime.UtcNow.Month - sub.StartDate.Month;
+                // Calculate months passed since start
+                int monthsPassed = ((now.Year - sub.StartDate.Year) * 12) + now.Month - sub.StartDate.Month;
                 if (monthsPassed < 0) monthsPassed = 0;
-                int expectedPaymentsCount = (monthsPassed / (int)sub.PaymentCycle) + 1;
-                decimal expectedAmount = expectedPaymentsCount * sub.Amount.Amount;
+
+                // Expected payments count (including the first payment at StartDate)
+                int cycle = Math.Max(1, sub.PaymentCycle);
+                int expectedPaymentsCount = (monthsPassed / cycle) + 1;
+                decimal expectedAmount = expectedPaymentsCount * sub.Amount;
                 
-                decimal paidAmount = subPaymentsGrouped.ContainsKey(sub.Id) ? subPaymentsGrouped[sub.Id] : 0;
+                decimal paidAmount = subPaymentsGrouped.TryGetValue(sub.Id, out var paid) ? paid : 0;
                 
                 decimal remaining = expectedAmount - paidAmount;
                 if (remaining > 0)
@@ -73,19 +88,20 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
                 }
             }
 
+            // 5. Emergency and In-Kind Stats
             var emergencyPayments = await _db.PaymentRequests
                 .Where(p => p.TargetType == PaymentTargetType.EmergencyCase && p.Status == PaymentStatus.Verified)
-                .SumAsync(p => p.Amount.Amount, ct);
+                .SumAsync(p => (decimal?)p.Amount.Amount ?? 0, ct);
 
-            var totalInKindQuantity = await _db.InKindDonations.SumAsync(i => i.Quantity, ct);
+            var totalInKindQuantity = await _db.InKindDonations.SumAsync(i => (double?)i.Quantity ?? 0, ct);
 
             var usersWithDelayed = await _db.SponsorshipSubscriptions
-                .Where(s => s.Status == SubscriptionStatus.Active && s.NextPaymentDate < DateTime.UtcNow)
+                .Where(s => s.Status == SubscriptionStatus.Active && s.NextPaymentDate < now)
                 .Select(s => s.DonorId)
                 .Distinct()
                 .CountAsync(ct);
 
-            // Most active donors
+            // 6. Most Active Donors (Overall)
             var donorPayments = await _db.PaymentRequests
                 .Where(p => p.Status == PaymentStatus.Verified)
                 .GroupBy(p => p.DonorId)
@@ -97,16 +113,17 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
             var mostActiveDonorIds = donorPayments.Select(d => d.DonorId).ToList();
             var donorsDetails = await _db.Donors
                 .Where(d => mostActiveDonorIds.Contains(d.Id))
-                .ToDictionaryAsync(d => d.Id, d => d.FullName.FirstName + " " + d.FullName.LastName, ct);
+                .Select(d => new { d.Id, Name = d.FullName.FirstName + " " + d.FullName.LastName })
+                .ToDictionaryAsync(d => d.Id, d => d.Name, ct);
 
             var mostActiveDonorsList = donorPayments.Select(d => new ActiveUserDto
             {
                 DonorId = d.DonorId,
-                FullName = donorsDetails.ContainsKey(d.DonorId) ? donorsDetails[d.DonorId] : "Unknown",
+                FullName = donorsDetails.TryGetValue(d.DonorId, out var name) ? name : "Unknown",
                 TotalAmount = d.Total
             }).ToList();
 
-            var mostActiveSponsors = new List<ActiveUserDto>(); // Could be based on subscriptions amount
+            // 7. Most Active Sponsors (Subscription-only)
             var sponsorPayments = await _db.PaymentRequests
                 .Where(p => p.TargetType == PaymentTargetType.Subscription && p.Status == PaymentStatus.Verified)
                 .GroupBy(p => p.DonorId)
@@ -118,26 +135,26 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
             var mostActiveSponsorIds = sponsorPayments.Select(d => d.DonorId).ToList();
             var sponsorDonorsDetails = await _db.Donors
                 .Where(d => mostActiveSponsorIds.Contains(d.Id))
-                .ToDictionaryAsync(d => d.Id, d => d.FullName.FirstName + " " + d.FullName.LastName, ct);
+                .Select(d => new { d.Id, Name = d.FullName.FirstName + " " + d.FullName.LastName })
+                .ToDictionaryAsync(d => d.Id, d => d.Name, ct);
 
-            mostActiveSponsors = sponsorPayments.Select(d => new ActiveUserDto
+            var mostActiveSponsors = sponsorPayments.Select(d => new ActiveUserDto
             {
                 DonorId = d.DonorId,
-                FullName = sponsorDonorsDetails.ContainsKey(d.DonorId) ? sponsorDonorsDetails[d.DonorId] : "Unknown",
+                FullName = sponsorDonorsDetails.TryGetValue(d.DonorId, out var name) ? name : "Unknown",
                 TotalAmount = d.Total
             }).ToList();
-
 
             return new GlobalDashboardAnalyticsDto
             {
                 TotalUsers = totalUsers,
                 TotalActiveSponsors = totalActiveSponsors,
-                TotalMonthlyExpectedRevenue = totalMonthlyExpectedRevenue,
+                TotalMonthlyExpectedRevenue = Math.Round(totalMonthlyExpectedRevenue, 2),
                 TotalCollectedRevenue = verifiedSubscriptionPayments,
-                TotalRemainingRevenue = totalRemainingRevenue,
+                TotalRemainingRevenue = Math.Round(totalRemainingRevenue, 2),
                 UsersWithDelayedPayments = usersWithDelayed,
                 TotalEmergencyDonationsAmount = emergencyPayments,
-                TotalInKindDonationsQuantity = totalInKindQuantity,
+                TotalInKindDonationsQuantity = (int)totalInKindQuantity,
                 MostActiveDonors = mostActiveDonorsList,
                 MostActiveSponsors = mostActiveSponsors
             };
