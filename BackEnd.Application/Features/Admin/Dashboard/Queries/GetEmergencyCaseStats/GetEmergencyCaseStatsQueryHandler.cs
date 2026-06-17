@@ -18,7 +18,7 @@ namespace BackEnd.Application.Features.Admin.Dashboard.Queries.GetEmergencyCaseS
 
         public async Task<Result<EmergencyCaseStatsDto>> Handle(GetEmergencyCaseStatsQuery request, CancellationToken cancellationToken)
         {
-            var data = await _repository.GetEmergencyCaseStatsAsync(cancellationToken);
+            var data = await _repository.GetEmergencyCaseStatsAsync(request.Period, cancellationToken);
             return Result<EmergencyCaseStatsDto>.Success(data);
         }
     }

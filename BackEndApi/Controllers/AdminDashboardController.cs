@@ -6,6 +6,7 @@ using BackEnd.Application.Features.Admin.Dashboard.Queries.GetMonthlyDonationTre
 using BackEnd.Application.Features.Admin.Dashboard.Queries.GetOverview;
 using BackEnd.Application.Features.Admin.Dashboard.Queries.GetSponsorshipStats;
 using BackEnd.Application.Features.Admin.Dashboard.Queries.GetUserStats;
+using BackEnd.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -42,9 +43,11 @@ namespace BackEndApi.Controllers
             OperationId = "AdminDashboard_GetOverview",
             Tags = new[] { "Admin Dashboard" }
         )]
-        public async Task<ActionResult<Result<DashboardOverviewDto>>> GetOverview(CancellationToken ct)
+        public async Task<ActionResult<Result<DashboardOverviewDto>>> GetOverview(
+            [FromQuery] DashboardPeriod period = DashboardPeriod.LastMonth,
+            CancellationToken ct = default)
         {
-            var result = await _mediator.Send(new GetDashboardOverviewQuery(), ct);
+            var result = await _mediator.Send(new GetDashboardOverviewQuery(period), ct);
             return Ok(result);
         }
 
@@ -59,9 +62,11 @@ namespace BackEndApi.Controllers
             OperationId = "AdminDashboard_GetDonationTypes",
             Tags = new[] { "Admin Dashboard" }
         )]
-        public async Task<ActionResult<Result<List<DonationTypeStatsDto>>>> GetDonationTypeStats(CancellationToken ct)
+        public async Task<ActionResult<Result<List<DonationTypeStatsDto>>>> GetDonationTypeStats(
+            [FromQuery] DashboardPeriod period = DashboardPeriod.LastMonth,
+            CancellationToken ct = default)
         {
-            var result = await _mediator.Send(new GetDonationTypeStatsQuery(), ct);
+            var result = await _mediator.Send(new GetDonationTypeStatsQuery(period), ct);
             return Ok(result);
         }
 
@@ -76,26 +81,30 @@ namespace BackEndApi.Controllers
             OperationId = "AdminDashboard_GetEmergencyCases",
             Tags = new[] { "Admin Dashboard" }
         )]
-        public async Task<ActionResult<Result<EmergencyCaseStatsDto>>> GetEmergencyCaseStats(CancellationToken ct)
+        public async Task<ActionResult<Result<EmergencyCaseStatsDto>>> GetEmergencyCaseStats(
+            [FromQuery] DashboardPeriod period = DashboardPeriod.LastMonth,
+            CancellationToken ct = default)
         {
-            var result = await _mediator.Send(new GetEmergencyCaseStatsQuery(), ct);
+            var result = await _mediator.Send(new GetEmergencyCaseStatsQuery(period), ct);
             return Ok(result);
         }
 
         /// <summary>
-        /// [Admin] رسم بياني للتبرعات الشهرية (آخر 12 شهر)
+        /// [Admin] رسم بياني للتبرعات الشهرية
         /// </summary>
         [HttpGet("monthly-donations")]
         [ProducesResponseType(typeof(Result<List<MonthlyDonationTrendDto>>), StatusCodes.Status200OK)]
         [SwaggerOperation(
             Summary = "[Admin] رسم بياني للتبرعات الشهرية",
-            Description = "يرجع اتجاه التبرعات خلال آخر 12 شهر مع الإجمالي وعدد الحركات.",
+            Description = "يرجع اتجاه التبرعات خلال الفترة المختارة مع الإجمالي وعدد الحركات.",
             OperationId = "AdminDashboard_GetMonthlyDonations",
             Tags = new[] { "Admin Dashboard" }
         )]
-        public async Task<ActionResult<Result<List<MonthlyDonationTrendDto>>>> GetMonthlyDonations(CancellationToken ct)
+        public async Task<ActionResult<Result<List<MonthlyDonationTrendDto>>>> GetMonthlyDonations(
+            [FromQuery] DashboardPeriod period = DashboardPeriod.LastYear,
+            CancellationToken ct = default)
         {
-            var result = await _mediator.Send(new GetMonthlyDonationTrendQuery(), ct);
+            var result = await _mediator.Send(new GetMonthlyDonationTrendQuery(period), ct);
             return Ok(result);
         }
 
@@ -110,9 +119,11 @@ namespace BackEndApi.Controllers
             OperationId = "AdminDashboard_GetUsers",
             Tags = new[] { "Admin Dashboard" }
         )]
-        public async Task<ActionResult<Result<UserStatsDto>>> GetUserStats(CancellationToken ct)
+        public async Task<ActionResult<Result<UserStatsDto>>> GetUserStats(
+            [FromQuery] DashboardPeriod period = DashboardPeriod.LastMonth,
+            CancellationToken ct = default)
         {
-            var result = await _mediator.Send(new GetUserStatsQuery(), ct);
+            var result = await _mediator.Send(new GetUserStatsQuery(period), ct);
             return Ok(result);
         }
 
@@ -127,9 +138,11 @@ namespace BackEndApi.Controllers
             OperationId = "AdminDashboard_GetSponsorships",
             Tags = new[] { "Admin Dashboard" }
         )]
-        public async Task<ActionResult<Result<SponsorshipStatsDto>>> GetSponsorshipStats(CancellationToken ct)
+        public async Task<ActionResult<Result<SponsorshipStatsDto>>> GetSponsorshipStats(
+            [FromQuery] DashboardPeriod period = DashboardPeriod.LastMonth,
+            CancellationToken ct = default)
         {
-            var result = await _mediator.Send(new GetSponsorshipStatsQuery(), ct);
+            var result = await _mediator.Send(new GetSponsorshipStatsQuery(period), ct);
             return Ok(result);
         }
     }

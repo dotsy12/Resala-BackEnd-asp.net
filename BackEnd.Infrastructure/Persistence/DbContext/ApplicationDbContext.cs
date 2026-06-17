@@ -1,4 +1,5 @@
-﻿using BackEnd.Domain.Entities.EmergencyCase;
+﻿using BackEnd.Domain.Entities;
+using BackEnd.Domain.Entities.EmergencyCase;
 using BackEnd.Domain.Entities.Identity;
 using BackEnd.Domain.Entities.Notification;
 using BackEnd.Domain.Entities.Payment;
@@ -37,6 +38,8 @@ namespace BackEnd.Infrastructure.Persistence.DbContext
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<BranchAppointmentSlot> BranchAppointmentSlots { get; set; }
         public DbSet<PaymentNumber> PaymentNumbers { get; set; }
+        public DbSet<SuccessStory> SuccessStories { get; set; }
+        public DbSet<Feedback> Feedbacks { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

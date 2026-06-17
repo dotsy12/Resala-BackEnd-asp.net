@@ -19,7 +19,7 @@ namespace BackEnd.Application.Features.Admin.Dashboard.Queries.GetMonthlyDonatio
 
         public async Task<Result<List<MonthlyDonationTrendDto>>> Handle(GetMonthlyDonationTrendQuery request, CancellationToken cancellationToken)
         {
-            var data = await _repository.GetMonthlyDonationTrendAsync(cancellationToken);
+            var data = await _repository.GetMonthlyDonationTrendAsync(request.Period, cancellationToken);
             return Result<List<MonthlyDonationTrendDto>>.Success(data);
         }
     }

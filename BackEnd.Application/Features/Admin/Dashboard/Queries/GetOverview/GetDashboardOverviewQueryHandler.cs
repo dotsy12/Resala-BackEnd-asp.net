@@ -18,7 +18,7 @@ namespace BackEnd.Application.Features.Admin.Dashboard.Queries.GetOverview
 
         public async Task<Result<DashboardOverviewDto>> Handle(GetDashboardOverviewQuery request, CancellationToken cancellationToken)
         {
-            var data = await _repository.GetOverviewAsync(cancellationToken);
+            var data = await _repository.GetOverviewAsync(request.Period, cancellationToken);
             return Result<DashboardOverviewDto>.Success(data);
         }
     }

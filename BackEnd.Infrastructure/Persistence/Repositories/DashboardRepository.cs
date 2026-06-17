@@ -20,23 +20,49 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
             _db = db;
         }
 
-        public async Task<DashboardOverviewDto> GetOverviewAsync(CancellationToken ct = default)
+        private static DateTime? GetStartDate(DashboardPeriod period)
         {
-            var totalDonations = await _db.PaymentRequests
-                .Where(p => p.Status == PaymentStatus.Verified)
-                .SumAsync(p => p.Amount.Amount, ct);
+            return period switch
+            {
+                DashboardPeriod.LastWeek => DateTime.UtcNow.AddDays(-7),
+                DashboardPeriod.LastMonth => DateTime.UtcNow.AddMonths(-1),
+                DashboardPeriod.LastSixMonths => DateTime.UtcNow.AddMonths(-6),
+                DashboardPeriod.LastYear => DateTime.UtcNow.AddYears(-1),
+                DashboardPeriod.AllTime => null,
+                _ => DateTime.UtcNow.AddMonths(-1)
+            };
+        }
 
-            var totalDonors = await _db.PaymentRequests
-                .Where(p => p.Status == PaymentStatus.Verified)
+        public async Task<DashboardOverviewDto> GetOverviewAsync(DashboardPeriod period, CancellationToken ct = default)
+        {
+            var startDate = GetStartDate(period);
+
+            var donationsQuery = _db.PaymentRequests.Where(p => p.Status == PaymentStatus.Verified);
+            if (startDate.HasValue)
+                donationsQuery = donationsQuery.Where(p => p.CreatedOn >= startDate.Value);
+
+            var totalDonations = await donationsQuery.SumAsync(p => p.Amount.Amount, ct);
+
+            var totalDonors = await donationsQuery
                 .Select(p => p.DonorId)
                 .Distinct()
                 .CountAsync(ct);
 
-            var totalEmergencyCases = await _db.EmergencyCases.CountAsync(ct);
-            var totalSponsorships = await _db.Sponsorships.CountAsync(ct);
-            var totalPaymentRequests = await _db.PaymentRequests.CountAsync(ct);
+            var emergencyCasesQuery = _db.EmergencyCases.AsQueryable();
+            if (startDate.HasValue)
+                emergencyCasesQuery = emergencyCasesQuery.Where(c => c.CreatedOn >= startDate.Value);
+            
+            var totalEmergencyCases = await emergencyCasesQuery.CountAsync(ct);
+            
+            var sponsorshipsQuery = _db.Sponsorships.AsQueryable();
+            if (startDate.HasValue)
+                sponsorshipsQuery = sponsorshipsQuery.Where(s => s.CreatedOn >= startDate.Value);
 
-            var monthlyTrend = await GetMonthlyDonationTrendAsync(ct);
+            var totalSponsorships = await sponsorshipsQuery.CountAsync(ct);
+            
+            var totalPaymentRequests = await donationsQuery.CountAsync(ct);
+
+            var monthlyTrend = await GetMonthlyDonationTrendAsync(period, ct);
 
             return new DashboardOverviewDto
             {
@@ -49,10 +75,15 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
             };
         }
 
-        public async Task<List<DonationTypeStatsDto>> GetDonationTypeStatsAsync(CancellationToken ct = default)
+        public async Task<List<DonationTypeStatsDto>> GetDonationTypeStatsAsync(DashboardPeriod period, CancellationToken ct = default)
         {
-            var stats = await _db.PaymentRequests
-                .Where(p => p.Status == PaymentStatus.Verified)
+            var startDate = GetStartDate(period);
+            var query = _db.PaymentRequests.Where(p => p.Status == PaymentStatus.Verified);
+
+            if (startDate.HasValue)
+                query = query.Where(p => p.CreatedOn >= startDate.Value);
+
+            var stats = await query
                 .GroupBy(p => p.TargetType)
                 .Select(g => new
                 {
@@ -70,9 +101,13 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
             }).ToList();
         }
 
-        public async Task<EmergencyCaseStatsDto> GetEmergencyCaseStatsAsync(CancellationToken ct = default)
+        public async Task<EmergencyCaseStatsDto> GetEmergencyCaseStatsAsync(DashboardPeriod period, CancellationToken ct = default)
         {
+            var startDate = GetStartDate(period);
             var casesQuery = _db.EmergencyCases.AsNoTracking();
+
+            if (startDate.HasValue)
+                casesQuery = casesQuery.Where(c => c.CreatedOn >= startDate.Value);
 
             var totalCases = await casesQuery.CountAsync(ct);
             var activeCases = await casesQuery.CountAsync(c => c.IsActive, ct);
@@ -115,13 +150,22 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
             };
         }
 
-        public async Task<List<MonthlyDonationTrendDto>> GetMonthlyDonationTrendAsync(CancellationToken ct = default)
+        public async Task<List<MonthlyDonationTrendDto>> GetMonthlyDonationTrendAsync(DashboardPeriod period, CancellationToken ct = default)
         {
-            var startDate = DateTime.UtcNow.AddMonths(-11);
-            startDate = new DateTime(startDate.Year, startDate.Month, 1);
+            var startDate = GetStartDate(period) ?? DateTime.UtcNow.AddMonths(-11);
+            // If AllTime, we still need a start point for the trend, let's default to last 12 months for visual trend if AllTime is selected but trend is requested.
+            // Or better, adjust the trend based on period.
+            
+            int monthsToDisplay = 12;
+            if (period == DashboardPeriod.LastWeek) monthsToDisplay = 1; // Not great for monthly trend, but let's see.
+            if (period == DashboardPeriod.LastSixMonths) monthsToDisplay = 6;
+            if (period == DashboardPeriod.LastYear) monthsToDisplay = 12;
+            if (period == DashboardPeriod.AllTime) monthsToDisplay = 24; // Show more for all time?
+
+            var actualStartDate = new DateTime(startDate.Year, startDate.Month, 1);
 
             var data = await _db.PaymentRequests
-                .Where(p => p.Status == PaymentStatus.Verified && p.CreatedOn >= startDate)
+                .Where(p => p.Status == PaymentStatus.Verified && p.CreatedOn >= actualStartDate)
                 .GroupBy(p => new { p.CreatedOn.Year, p.CreatedOn.Month })
                 .Select(g => new
                 {
@@ -133,9 +177,11 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
                 .ToListAsync(ct);
 
             var result = new List<MonthlyDonationTrendDto>();
-            for (int i = 0; i < 12; i++)
+            for (int i = 0; i < monthsToDisplay; i++)
             {
-                var date = startDate.AddMonths(i);
+                var date = actualStartDate.AddMonths(i);
+                if (date > DateTime.UtcNow) break;
+
                 var monthData = data.FirstOrDefault(d => d.Year == date.Year && d.Month == date.Month);
                 
                 result.Add(new MonthlyDonationTrendDto
@@ -149,26 +195,39 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
             return result;
         }
 
-        public async Task<UserStatsDto> GetUserStatsAsync(CancellationToken ct = default)
+        public async Task<UserStatsDto> GetUserStatsAsync(DashboardPeriod period, CancellationToken ct = default)
         {
-            var totalUsers = await _db.Users.CountAsync(ct);
-            var totalDonors = await _db.Donors.CountAsync(ct);
-            var activeUsers = await _db.Users.CountAsync(u => u.EmailConfirmed, ct);
+            var startDate = GetStartDate(period);
+            var usersQuery = _db.Users.AsQueryable();
+            var donorsQuery = _db.Donors.AsQueryable();
+
+            if (startDate.HasValue)
+            {
+                usersQuery = usersQuery.Where(u => u.CreatedOn >= startDate.Value);
+                donorsQuery = donorsQuery.Where(d => d.CreatedOn >= startDate.Value);
+            }
+
+            var totalUsers = await usersQuery.CountAsync(ct);
+            var totalDonors = await donorsQuery.CountAsync(ct);
+            var activeUsers = await usersQuery.CountAsync(u => u.EmailConfirmed, ct);
             
             var thisMonth = DateTime.UtcNow.Month;
             var thisYear = DateTime.UtcNow.Year;
             var newUsersThisMonth = await _db.Users.CountAsync(u => u.CreatedOn.Month == thisMonth && u.CreatedOn.Year == thisYear, ct);
 
-            var subscribedUsers = await _db.SponsorshipSubscriptions
-                .Where(s => s.Status == SubscriptionStatus.Active)
+            var subQuery = _db.SponsorshipSubscriptions.Where(s => s.Status == SubscriptionStatus.Active);
+            if (startDate.HasValue)
+                subQuery = subQuery.Where(s => s.CreatedOn >= startDate.Value);
+
+            var subscribedUsers = await subQuery
                 .Select(s => s.DonorId)
                 .Distinct()
                 .CountAsync(ct);
 
-            // Group by Role
-            // This is a bit tricky with ASP.NET Identity, but let's assume we can join Users and UserRoles
             var roleDistribution = await (from userRole in _db.UserRoles
                                          join role in _db.Roles on userRole.RoleId equals role.Id
+                                         join user in _db.Users on userRole.UserId equals user.Id
+                                         where !startDate.HasValue || user.CreatedOn >= startDate.Value
                                          group userRole by role.Name into g
                                          select new RoleDistributionDto
                                          {
@@ -188,17 +247,20 @@ namespace BackEnd.Infrastructure.Persistence.Repositories
             };
         }
 
-        public async Task<SponsorshipStatsDto> GetSponsorshipStatsAsync(CancellationToken ct = default)
+        public async Task<SponsorshipStatsDto> GetSponsorshipStatsAsync(DashboardPeriod period, CancellationToken ct = default)
         {
+            var startDate = GetStartDate(period);
             var topSponsorships = await _db.Sponsorships
                 .Select(s => new TopSponsorshipDto
                 {
                     SponsorshipId = s.Id,
                     Title = s.Name,
-                    CollectedAmount = s.TotalCollected.Amount,
+                    CollectedAmount = _db.PaymentRequests
+                        .Where(p => p.Subscription!.SponsorshipId == s.Id && p.Status == PaymentStatus.Verified && (!startDate.HasValue || p.CreatedOn >= startDate.Value))
+                        .Sum(p => p.Amount.Amount),
                     TargetAmount = s.FinancialGoal != null ? s.FinancialGoal.Amount : 0,
                     DonorsCount = _db.PaymentRequests
-                        .Where(p => p.Subscription!.SponsorshipId == s.Id && p.Status == PaymentStatus.Verified)
+                        .Where(p => p.Subscription!.SponsorshipId == s.Id && p.Status == PaymentStatus.Verified && (!startDate.HasValue || p.CreatedOn >= startDate.Value))
                         .Select(p => p.DonorId)
                         .Distinct()
                         .Count()

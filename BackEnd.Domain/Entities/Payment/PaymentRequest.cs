@@ -42,7 +42,8 @@ namespace BackEnd.Domain.Entities.Payment
         // Representative
         public RepresentativeDetails? RepresentativeInfo { get; private set; }
 
-        // Staff review
+        // Staff tracking
+        public int? ProcessedByStaffId { get; private set; } // Staff who initiated the transaction
         public int? VerifiedByStaffId { get; private set; }
         public DateTime? VerifiedAt { get; private set; }
         public string? RejectionReason { get; private set; }
@@ -98,13 +99,23 @@ namespace BackEnd.Domain.Entities.Payment
             return payment;
         }
 
-        /// <summary>إنشاء طلب دفع في الفرع</summary>
+        /// <summary>إنشاء طلب دفع في الفرع (عبر المتبرع - موعد مستقبلي)</summary>
         public static PaymentRequest CreateBranch(
             int donorId, int? subscriptionId, int? emergencyCaseId, int? generalDonationId,
             Money amount, BranchPaymentDetails branchDetails)
         {
             var payment = CreateBase(donorId, amount, PaymentMethod.Branch, subscriptionId, emergencyCaseId, generalDonationId);
             payment.BranchDetails = branchDetails ?? throw new ArgumentNullException(nameof(branchDetails));
+            return payment;
+        }
+
+        /// <summary>إنشاء دفع مباشر في الفرع (عبر الموظف - تحصيل فوري)</summary>
+        public static PaymentRequest CreateDirectBranch(
+            int donorId, int? subscriptionId, int? emergencyCaseId, int? generalDonationId,
+            Money amount, int staffId)
+        {
+            var payment = CreateBase(donorId, amount, PaymentMethod.Branch, subscriptionId, emergencyCaseId, generalDonationId);
+            payment.ProcessedByStaffId = staffId;
             return payment;
         }
 

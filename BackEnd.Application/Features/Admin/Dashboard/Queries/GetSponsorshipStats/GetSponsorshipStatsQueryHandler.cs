@@ -18,7 +18,7 @@ namespace BackEnd.Application.Features.Admin.Dashboard.Queries.GetSponsorshipSta
 
         public async Task<Result<SponsorshipStatsDto>> Handle(GetSponsorshipStatsQuery request, CancellationToken cancellationToken)
         {
-            var data = await _repository.GetSponsorshipStatsAsync(cancellationToken);
+            var data = await _repository.GetSponsorshipStatsAsync(request.Period, cancellationToken);
             return Result<SponsorshipStatsDto>.Success(data);
         }
     }

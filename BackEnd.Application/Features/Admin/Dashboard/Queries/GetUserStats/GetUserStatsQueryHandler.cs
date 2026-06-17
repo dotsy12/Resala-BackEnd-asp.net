@@ -18,7 +18,7 @@ namespace BackEnd.Application.Features.Admin.Dashboard.Queries.GetUserStats
 
         public async Task<Result<UserStatsDto>> Handle(GetUserStatsQuery request, CancellationToken cancellationToken)
         {
-            var data = await _repository.GetUserStatsAsync(cancellationToken);
+            var data = await _repository.GetUserStatsAsync(request.Period, cancellationToken);
             return Result<UserStatsDto>.Success(data);
         }
     }

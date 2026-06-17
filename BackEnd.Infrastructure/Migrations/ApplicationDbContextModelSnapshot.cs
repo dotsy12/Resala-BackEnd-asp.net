@@ -66,6 +66,52 @@ namespace BackEnd.Infrastructure.Migrations
                     b.ToTable("EmergencyCases");
                 });
 
+            modelBuilder.Entity("BackEnd.Domain.Entities.Feedback", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DonorId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DonorId");
+
+                    b.ToTable("Feedbacks", (string)null);
+                });
+
             modelBuilder.Entity("BackEnd.Domain.Entities.Identity.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -178,7 +224,7 @@ namespace BackEnd.Infrastructure.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@RESALA.ORG",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAECxnbs+RjWseGmosZxnrjd+uN3Iy7ZbX2SNylwlye7bdSK7KK6oJWo4CoXl+bIbwLg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEAL+Jj/jJJj3ePnl6thdkIxdSJYLOUv0yn6SFW6BdQ8pcAVXs5U41xa+HO1FNYrx8Q==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "admin-security",
                             TwoFactorEnabled = false,
@@ -677,6 +723,9 @@ namespace BackEnd.Infrastructure.Migrations
                     b.Property<int>("Method")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ProcessedByStaffId")
+                        .HasColumnType("int");
+
                     b.Property<string>("ReceiptImagePublicId")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -834,6 +883,51 @@ namespace BackEnd.Infrastructure.Migrations
                     b.HasIndex("SponsorshipId");
 
                     b.ToTable("SponsorshipSubscriptions", (string)null);
+                });
+
+            modelBuilder.Entity("BackEnd.Domain.Entities.SuccessStory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("ImagePublicId")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<DateTime?>("UpdatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SuccessStories", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -1054,6 +1148,17 @@ namespace BackEnd.Infrastructure.Migrations
 
                     b.Navigation("RequiredAmount")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("BackEnd.Domain.Entities.Feedback", b =>
+                {
+                    b.HasOne("BackEnd.Domain.Entities.Identity.Donor", "Donor")
+                        .WithMany()
+                        .HasForeignKey("DonorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Donor");
                 });
 
             modelBuilder.Entity("BackEnd.Domain.Entities.Identity.Donor", b =>

@@ -19,7 +19,7 @@ namespace BackEnd.Application.Features.Admin.Dashboard.Queries.GetDonationTypeSt
 
         public async Task<Result<List<DonationTypeStatsDto>>> Handle(GetDonationTypeStatsQuery request, CancellationToken cancellationToken)
         {
-            var data = await _repository.GetDonationTypeStatsAsync(cancellationToken);
+            var data = await _repository.GetDonationTypeStatsAsync(request.Period, cancellationToken);
             return Result<List<DonationTypeStatsDto>>.Success(data);
         }
     }

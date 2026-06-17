@@ -74,4 +74,26 @@ namespace BackEnd.Domain.Enums
         Completed = 3,
         Cancelled = 4
     }
+
+    public enum FeedbackType
+    {
+        Feedback = 1,
+        Complaint = 2
+    }
+
+    public enum FeedbackStatus
+    {
+        Pending = 1,
+        Resolved = 2,
+        Rejected = 3
+    }
+
+    public enum DashboardPeriod
+    {
+        LastWeek = 1,
+        LastMonth = 2,
+        LastSixMonths = 3,
+        LastYear = 4,
+        AllTime = 5
+    }
 }
