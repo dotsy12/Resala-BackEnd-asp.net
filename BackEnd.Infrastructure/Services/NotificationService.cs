@@ -1,3 +1,4 @@
+using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Interfaces.Repositories;
 using BackEnd.Application.Interfaces.Services;
 using BackEnd.Domain.Entities.Notification;
@@ -146,41 +147,69 @@ namespace BackEnd.Infrastructure.Services
             }
         }
 
-        public async Task RegisterTokenAsync(int donorId, string token, string? deviceType = null)
+        public async Task<Result<bool>> RegisterTokenAsync(int donorId, string token, string? deviceType = null)
         {
-            if (string.IsNullOrWhiteSpace(token) || token.Length < 20)
+            if (string.IsNullOrWhiteSpace(token))
             {
-                _logger.LogWarning("Attempted to register an invalid FCM token for user {DonorId}: {Token}", donorId, token);
-                return; // Or throw an exception if you want to return a bad request
+                _logger.LogWarning("Attempted to register an empty FCM token for user {DonorId}", donorId);
+                return Result<bool>.Failure("FCM token cannot be empty.", ErrorType.BadRequest);
             }
 
-            var existingToken = await _tokenRepo.GetByTokenAsync(token);
-            if (existingToken != null)
+            token = token.Trim();
+
+            if (token.Length < 20)
             {
-                if (existingToken.DonorId == donorId)
+                _logger.LogWarning("Attempted to register an invalid FCM token for user {DonorId}: {Token}", donorId, token);
+                return Result<bool>.Failure("FCM token is invalid or too short.", ErrorType.BadRequest);
+            }
+
+            // Verify donor exists in database to avoid foreign key constraint violations
+            var donor = await _donorRepo.GetByIdAsync(donorId);
+            if (donor == null)
+            {
+                _logger.LogWarning("Attempted to register device token for a non-existent donor: {DonorId}", donorId);
+                return Result<bool>.Failure("Donor not found.", ErrorType.NotFound);
+            }
+
+            try
+            {
+                var existingToken = await _tokenRepo.GetByTokenAsync(token);
+                if (existingToken != null)
                 {
-                    existingToken.UpdateLastUsed();
-                    _tokenRepo.Update(existingToken);
+                    if (existingToken.DonorId == donorId)
+                    {
+                        existingToken.UpdateLastUsed();
+                        _tokenRepo.Update(existingToken);
+                    }
+                    else
+                    {
+                        // Token belongs to another user (maybe device was sold/reassigned)
+                        _tokenRepo.Remove(existingToken);
+                        var newToken = DeviceToken.Create(donorId, token, deviceType);
+                        await _tokenRepo.AddAsync(newToken);
+                    }
                 }
                 else
                 {
-                    // Token belongs to another user (maybe device was sold/reassigned)
-                    _tokenRepo.Remove(existingToken);
                     var newToken = DeviceToken.Create(donorId, token, deviceType);
                     await _tokenRepo.AddAsync(newToken);
                 }
-            }
-            else
-            {
-                var newToken = DeviceToken.Create(donorId, token, deviceType);
-                await _tokenRepo.AddAsync(newToken);
-            }
 
-            await _tokenRepo.SaveChangesAsync();
+                await _tokenRepo.SaveChangesAsync();
+                return Result<bool>.Success(true, "Token registered successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Database error occurred while registering device token for donor {DonorId}", donorId);
+                return Result<bool>.Failure("An error occurred while saving the device token to the database.", ErrorType.InternalServerError);
+            }
         }
 
         public async Task UnregisterTokenAsync(string token)
         {
+            if (string.IsNullOrWhiteSpace(token)) return;
+            token = token.Trim();
+
             var existingToken = await _tokenRepo.GetByTokenAsync(token);
             if (existingToken != null)
             {

@@ -38,10 +38,26 @@ namespace BackEnd.Api.Controllers
             OperationId = "RegisterDeviceToken")]
         public async Task<IActionResult> RegisterToken([FromBody] RegisterDeviceTokenDto dto, CancellationToken ct)
         {
+            if (dto == null)
+            {
+                return BadRequest(Result<bool>.Failure("Request body is required.", ErrorType.BadRequest));
+            }
+
             var donorId = GetDonorId();
             if (donorId == 0) return Unauthorized(Result<bool>.Failure("Donor not found.", ErrorType.Unauthorized));
             
-            return Ok(await _mediator.Send(new RegisterDeviceTokenCommand(donorId, dto.Token, dto.DeviceType), ct));
+            var result = await _mediator.Send(new RegisterDeviceTokenCommand(donorId, dto.Token, dto.DeviceType), ct);
+            if (!result.IsSuccess)
+            {
+                if (result.ErrorType == ErrorType.NotFound)
+                    return NotFound(result);
+                if (result.ErrorType == ErrorType.Unauthorized)
+                    return Unauthorized(result);
+                
+                return BadRequest(result);
+            }
+
+            return Ok(result);
         }
 
         /// <summary>جلب تاريخ الإشعارات للمتبرع</summary>

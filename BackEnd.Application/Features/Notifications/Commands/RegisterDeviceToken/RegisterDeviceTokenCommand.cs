@@ -20,8 +20,7 @@ namespace BackEnd.Application.Features.Notifications.Commands.RegisterDeviceToke
 
         public async Task<Result<bool>> Handle(RegisterDeviceTokenCommand request, CancellationToken cancellationToken)
         {
-            await _notificationService.RegisterTokenAsync(request.DonorId, request.Token, request.DeviceType);
-            return Result<bool>.Success(true);
+            return await _notificationService.RegisterTokenAsync(request.DonorId, request.Token, request.DeviceType);
         }
     }
 }
