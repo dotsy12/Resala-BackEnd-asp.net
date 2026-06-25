@@ -1,4 +1,4 @@
-﻿using BackEnd.Domain.Entities;
+using BackEnd.Domain.Entities;
 using BackEnd.Domain.Entities.EmergencyCase;
 using BackEnd.Domain.Entities.Identity;
 using BackEnd.Domain.Entities.Notification;
@@ -24,6 +24,7 @@ namespace BackEnd.Infrastructure.Persistence.DbContext
         }
        
         public DbSet<Donor> Donors { get; set; }
+        public DbSet<CartItem> CartItems { get; set; }
         public DbSet<StaffMember> StaffMembers { get; set; }
         public DbSet<OtpRecord> OtpRecords { get; set; }
         public DbSet<Sponsorship> Sponsorships { get; set; }
