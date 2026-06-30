@@ -7,7 +7,6 @@ namespace BackEnd.Application.Features.Cart.Commands.AddToCart
     public record AddToCartCommand(
         int DonorId,
         int? SponsorshipId,
-        int? EmergencyCaseId,
-        decimal Amount
+        int? EmergencyCaseId
     ) : IRequest<Result<CartItemDto>>;
 }

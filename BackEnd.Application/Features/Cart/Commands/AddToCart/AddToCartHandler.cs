@@ -31,9 +31,6 @@ namespace BackEnd.Application.Features.Cart.Commands.AddToCart
 
         public async Task<Result<CartItemDto>> Handle(AddToCartCommand request, CancellationToken ct)
         {
-            if (request.Amount <= 0)
-                return Result<CartItemDto>.Failure("مبلغ التبرع يجب أن يكون أكبر من الصفر.", ErrorType.BadRequest);
-
             if (request.SponsorshipId == null && request.EmergencyCaseId == null)
                 return Result<CartItemDto>.Failure("يجب تحديد الكفالة أو حالة الطوارئ.", ErrorType.BadRequest);
 
@@ -46,10 +43,6 @@ namespace BackEnd.Application.Features.Cart.Commands.AddToCart
 
             string title = "";
             string? imagePath = null;
-            decimal? targetGoal = null;
-            decimal? targetCollected = null;
-            bool isCompleted = false;
-            string targetType = "";
 
             if (request.SponsorshipId.HasValue)
             {
@@ -62,10 +55,6 @@ namespace BackEnd.Application.Features.Cart.Commands.AddToCart
 
                 title = sponsorship.Name;
                 imagePath = sponsorship.ImagePath;
-                targetGoal = sponsorship.FinancialGoal?.Amount;
-                targetCollected = sponsorship.TotalCollected.Amount;
-                isCompleted = sponsorship.FinancialGoal != null && sponsorship.TotalCollected.Amount >= sponsorship.FinancialGoal.Amount;
-                targetType = "Sponsorship";
             }
             else if (request.EmergencyCaseId.HasValue)
             {
@@ -78,46 +67,27 @@ namespace BackEnd.Application.Features.Cart.Commands.AddToCart
 
                 title = emergencyCase.Title;
                 imagePath = emergencyCase.ImagePath;
-                targetGoal = emergencyCase.RequiredAmount.Amount;
-                targetCollected = emergencyCase.CollectedAmount.Amount;
-                isCompleted = emergencyCase.IsCompleted;
-                targetType = "EmergencyCase";
             }
 
-            var amount = new Money(request.Amount);
             var cartItem = await _cartRepo.GetByDonorAndTargetAsync(request.DonorId, request.SponsorshipId, request.EmergencyCaseId, ct);
 
-            if (cartItem != null)
+            if (cartItem == null)
             {
-                cartItem.UpdateAmount(amount);
-                _cartRepo.Update(cartItem);
-            }
-            else
-            {
-                cartItem = CartItem.Create(request.DonorId, request.SponsorshipId, request.EmergencyCaseId, amount);
+                cartItem = CartItem.Create(request.DonorId, request.SponsorshipId, request.EmergencyCaseId, Money.Zero());
                 await _cartRepo.AddAsync(cartItem, ct);
+                await _cartRepo.SaveChangesAsync(ct);
             }
-
-            await _cartRepo.SaveChangesAsync(ct);
 
             var dto = new CartItemDto
             {
                 Id = cartItem.Id,
-                DonorId = cartItem.DonorId,
                 SponsorshipId = cartItem.SponsorshipId,
                 EmergencyCaseId = cartItem.EmergencyCaseId,
-                DonationAmount = cartItem.DonationAmount.Amount,
-                Currency = cartItem.DonationAmount.Currency,
-                CreatedAt = cartItem.CreatedAt,
-                TargetType = targetType,
                 Title = title,
-                ImagePath = imagePath,
-                TargetGoalAmount = targetGoal,
-                TargetCollectedAmount = targetCollected,
-                IsCompleted = isCompleted
+                ImagePath = imagePath
             };
 
-            return Result<CartItemDto>.Success(dto, "تم إضافة العنصر إلى السلة بنجاح.");
+            return Result<CartItemDto>.Success(dto, "تم إضافة العنصر إلى المفضلة بنجاح.");
         }
     }
 }

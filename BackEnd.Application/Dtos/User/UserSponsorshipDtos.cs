@@ -13,7 +13,9 @@ namespace BackEnd.Application.Dtos.User
         string Status,
         DateTime StartDate,
         DateTime NextPaymentDate,
-        DateTime CreatedOn
+        DateTime CreatedOn,
+        string? SponsorshipImageUrl,
+        string? SponsorshipIcon
     );
 
     public record UserSponsorshipDetailDto(

@@ -44,7 +44,9 @@ namespace BackEnd.Application.Features.Users.Queries.GetUserSponsorshipsList
                 Status: s.Status.ToString(),
                 StartDate: s.StartDate,
                 NextPaymentDate: s.NextPaymentDate,
-                CreatedOn: s.CreatedOn
+                CreatedOn: s.CreatedOn,
+                SponsorshipImageUrl: s.Sponsorship?.ImagePath,
+                SponsorshipIcon: s.Sponsorship?.IconPath
             )).ToList();
 
             return Result<IReadOnlyList<SubscriptionSummaryDto>>.Success(dtos);

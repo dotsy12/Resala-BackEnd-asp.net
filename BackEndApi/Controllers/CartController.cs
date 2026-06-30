@@ -1,7 +1,6 @@
 using BackEnd.Application.Common.ResponseFormat;
 using BackEnd.Application.Dtos.Cart;
 using BackEnd.Application.Features.Cart.Commands.AddToCart;
-using BackEnd.Application.Features.Cart.Commands.CheckoutCart;
 using BackEnd.Application.Features.Cart.Commands.RemoveFromCart;
 using BackEnd.Application.Features.Cart.Queries.GetCart;
 using MediatR;
@@ -44,7 +43,7 @@ namespace BackEndApi.Controllers
             if (donorId == 0)
                 return Ok(Result<object>.Failure("لم يتم التعرف على هوية المتبرع.", ErrorType.Unauthorized));
 
-            var result = await _mediator.Send(new AddToCartCommand(donorId, request.SponsorshipId, request.EmergencyCaseId, request.Amount), ct);
+            var result = await _mediator.Send(new AddToCartCommand(donorId, request.SponsorshipId, request.EmergencyCaseId), ct);
             return Ok(result);
         }
 
@@ -77,29 +76,11 @@ namespace BackEndApi.Controllers
             var result = await _mediator.Send(new GetCartQuery(donorId), ct);
             return Ok(result);
         }
-
-        /// <summary>إتمام عملية الدفع لعناصر السلة وتفريغها</summary>
-        [HttpPost("checkout")]
-        [Consumes("multipart/form-data")]
-        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
-        [SwaggerOperation(Summary = "[Donor] إتمام عملية الدفع للسلة")]
-        public async Task<IActionResult> Checkout(
-            [FromForm] CheckoutCartDto dto,
-            CancellationToken ct)
-        {
-            var donorId = GetDonorId();
-            if (donorId == 0)
-                return Ok(Result<object>.Failure("لم يتم التعرف على هوية المتبرع.", ErrorType.Unauthorized));
-
-            var result = await _mediator.Send(new CheckoutCartCommand(donorId, dto), ct);
-            return Ok(result);
-        }
     }
 
     public class AddToCartRequest
     {
         public int? SponsorshipId { get; set; }
         public int? EmergencyCaseId { get; set; }
-        public decimal Amount { get; set; }
     }
 }

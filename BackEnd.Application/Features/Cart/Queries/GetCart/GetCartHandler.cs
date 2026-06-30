@@ -26,45 +26,25 @@ namespace BackEnd.Application.Features.Cart.Queries.GetCart
             {
                 string title = "";
                 string? imagePath = null;
-                decimal? targetGoal = null;
-                decimal? targetCollected = null;
-                bool isCompleted = false;
-                string targetType = "";
 
                 if (c.SponsorshipId.HasValue && c.Sponsorship != null)
                 {
                     title = c.Sponsorship.Name;
                     imagePath = c.Sponsorship.ImagePath;
-                    targetGoal = c.Sponsorship.FinancialGoal?.Amount;
-                    targetCollected = c.Sponsorship.TotalCollected.Amount;
-                    isCompleted = c.Sponsorship.FinancialGoal != null && c.Sponsorship.TotalCollected.Amount >= c.Sponsorship.FinancialGoal.Amount;
-                    targetType = "Sponsorship";
                 }
                 else if (c.EmergencyCaseId.HasValue && c.EmergencyCase != null)
                 {
                     title = c.EmergencyCase.Title;
                     imagePath = c.EmergencyCase.ImagePath;
-                    targetGoal = c.EmergencyCase.RequiredAmount.Amount;
-                    targetCollected = c.EmergencyCase.CollectedAmount.Amount;
-                    isCompleted = c.EmergencyCase.IsCompleted;
-                    targetType = "EmergencyCase";
                 }
 
                 return new CartItemDto
                 {
                     Id = c.Id,
-                    DonorId = c.DonorId,
                     SponsorshipId = c.SponsorshipId,
                     EmergencyCaseId = c.EmergencyCaseId,
-                    DonationAmount = c.DonationAmount.Amount,
-                    Currency = c.DonationAmount.Currency,
-                    CreatedAt = c.CreatedAt,
-                    TargetType = targetType,
                     Title = title,
-                    ImagePath = imagePath,
-                    TargetGoalAmount = targetGoal,
-                    TargetCollectedAmount = targetCollected,
-                    IsCompleted = isCompleted
+                    ImagePath = imagePath
                 };
             }).ToList();
 
