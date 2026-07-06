@@ -1,4 +1,4 @@
-﻿using BackEnd.Domain.Entities.Identity;
+using BackEnd.Domain.Entities.Identity;
 using BackEnd.Domain.Entities.Identity.AuthenticationHepler;
 using BackEnd.Infrastructure.Persistence.DbContext;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -58,6 +58,24 @@ namespace BackEnd.Infrastructure.AllInfrastructureDependencies
                     ValidAudiences = new[] { jwtSettings.Audience, "ResalaClients" },
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key)),
                     ClockSkew = TimeSpan.Zero 
+                };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+
+                        // If the request is for our hub...
+                        var path = context.HttpContext.Request.Path;
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            path.StartsWithSegments("/hubs/support"))
+                        {
+                            // Read the token out of the query string
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    }
                 };
             });
 

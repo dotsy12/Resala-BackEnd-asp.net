@@ -10,12 +10,24 @@ namespace BackEnd.Infrastructure.Services
     public class FirebaseService : IFirebaseService
     {
         private readonly ILogger<FirebaseService> _logger;
-        private readonly FirebaseMessaging _messaging;
+        private FirebaseMessaging? _messaging;
 
         public FirebaseService(ILogger<FirebaseService> logger)
         {
             _logger = logger;
-            _messaging = FirebaseMessaging.DefaultInstance;
+        }
+
+        private FirebaseMessaging GetMessaging()
+        {
+            if (_messaging == null)
+            {
+                if (FirebaseApp.DefaultInstance == null)
+                {
+                    throw new InvalidOperationException("FirebaseApp is not initialized. Please verify that your credentials JSON file path is correct and accessible.");
+                }
+                _messaging = FirebaseMessaging.GetMessaging(FirebaseApp.DefaultInstance);
+            }
+            return _messaging;
         }
 
         public async Task<string?> SendNotificationAsync(string token, string title, string message, Dictionary<string, string>? data = null)
@@ -33,7 +45,7 @@ namespace BackEnd.Infrastructure.Services
                     Data = data
                 };
 
-                string messageId = await _messaging.SendAsync(msg);
+                string messageId = await GetMessaging().SendAsync(msg);
                 _logger.LogInformation("Successfully sent FCM message. Firebase MessageId: {MessageId}", messageId);
                 return messageId;
             }
@@ -68,7 +80,7 @@ namespace BackEnd.Infrastructure.Services
 
                 // Fix: SendMulticastAsync used the deprecated /batch endpoint which was shut down by Google.
                 // SendEachForMulticastAsync sends individual messages under the hood.
-                var response = await _messaging.SendEachForMulticastAsync(msg);
+                var response = await GetMessaging().SendEachForMulticastAsync(msg);
                 _logger.LogInformation("Successfully sent FCM multicast message. Success: {Success}, Failure: {Failure}", response.SuccessCount, response.FailureCount);
                 
                 if (response.FailureCount > 0)

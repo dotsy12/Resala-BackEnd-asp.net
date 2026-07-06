@@ -1,4 +1,4 @@
-﻿using BackEnd.Api.Filters;
+using BackEnd.Api.Filters;
 using BackEnd.Api.Middleware;
 using BackEnd.Application.ALLApplicationDependencies;
 using BackEnd.Infrastructure.AllInfrastructureDependencies;
@@ -29,6 +29,18 @@ try
     builder.Services.AddControllers(options =>
     {
         options.Filters.Add<ResultActionFilter>();
+    });
+
+    builder.Services.AddSignalR();
+    builder.Services.AddCors(options =>
+    {
+        options.AddDefaultPolicy(policy =>
+        {
+            policy.SetIsOriginAllowed(origin => true)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        });
     });
 
     builder.Services
@@ -117,9 +129,11 @@ app.UseSwaggerUI(c =>
 });
 app.MapGet("/", () => Results.Redirect("/swagger"));
 app.UseHttpsRedirection();
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<BackEnd.Api.Hubs.SupportChatHub>("/hubs/support");
 app.Run();
 
 }
