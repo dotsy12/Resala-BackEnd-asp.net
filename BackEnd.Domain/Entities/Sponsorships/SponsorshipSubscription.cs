@@ -1,4 +1,4 @@
-﻿using BackEnd.Domain.Common;
+using BackEnd.Domain.Common;
 using BackEnd.Domain.Entities.Identity;
 using BackEnd.Domain.Enums;
 using BackEnd.Domain.Events;
@@ -15,9 +15,15 @@ namespace BackEnd.Domain.Entities.Sponsorship
         public PaymentCycle PaymentCycle { get; private set; }
         public SubscriptionStatus Status { get; private set; }
         public DateTime StartDate { get; private set; }
-        public DateTime NextPaymentDate { get; private set; }
+        public DateTime LastPaymentDate { get; set; }
+        public DateTime NextPaymentDate { get; set; }
         public DateTime? CancelledAt { get; private set; }
         public string? CancelReason { get; private set; }
+
+        public bool Sent50PercentReminder { get; set; }
+        public bool Sent75PercentReminder { get; set; }
+        public bool Sent100PercentReminder { get; set; }
+        public int PostDueRemindersCount { get; set; }
 
         public Donor? Donor { get; private set; }
         public Sponsorship? Sponsorship { get; private set; }
@@ -43,12 +49,28 @@ namespace BackEnd.Domain.Entities.Sponsorship
                 PaymentCycle = cycle,
                 Status = SubscriptionStatus.Active,
                 StartDate = startDate,
+                LastPaymentDate = startDate,
                 NextPaymentDate = startDate.AddMonths((int)cycle),
-                CreatedOn = startDate
+                CreatedOn = startDate,
+                Sent50PercentReminder = false,
+                Sent75PercentReminder = false,
+                Sent100PercentReminder = false,
+                PostDueRemindersCount = 0
             };
 
             sub.AddDomainEvent(new SubscriptionCreatedEvent(0, donorId, sponsorshipId));
             return sub;
+        }
+
+        public void ResetForNextBillingCycle(DateTime nextDueDate)
+        {
+            Sent50PercentReminder = false;
+            Sent75PercentReminder = false;
+            Sent100PercentReminder = false;
+            PostDueRemindersCount = 0;
+            LastPaymentDate = DateTime.UtcNow;
+            NextPaymentDate = nextDueDate;
+            UpdatedOn = DateTime.UtcNow;
         }
 
         /// <summary>تحديث قيمة الاشتراك</summary>

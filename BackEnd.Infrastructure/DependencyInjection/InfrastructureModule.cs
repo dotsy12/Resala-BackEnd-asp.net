@@ -57,6 +57,7 @@ namespace BackEnd.Infrastructure.InfrastructureDependencies
             services.AddScoped<IFeedbackRepository, FeedbackRepository>();
             services.AddScoped<ICartRepository, CartRepository>();
             services.AddScoped<ISupportMessageRepository, SupportMessageRepository>();
+            services.AddScoped<SubscriptionReminderJob>();
 
             services.AddHostedService<TokenCleanupBackgroundJob>();
 

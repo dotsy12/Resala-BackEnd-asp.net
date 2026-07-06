@@ -6,6 +6,9 @@ using BackEnd.Infrastructure.InfrastructureDependencies;
 using BackEnd.Infrastructure.DependencyInjection;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Hangfire;
+using Hangfire.Dashboard;
+using BackEnd.Infrastructure.Services;
 
 // ✅ Bootstrap Logger — يشتغل قبل أي حاجة
 Log.Logger = new LoggerConfiguration()
@@ -48,6 +51,14 @@ try
         .AuthenticationServices(builder.Configuration)
         .AddInfrastructureDependencies(builder.Configuration)
         .AddFirebase(builder.Configuration);
+
+    builder.Services.AddHangfire(config => config
+        .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+        .UseSimpleAssemblyNameTypeSerializer()
+        .UseRecommendedSerializerSettings()
+        .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+    builder.Services.AddHangfireServer();
 
     builder.Services.AddSwaggerGen(c =>
 {
@@ -134,6 +145,21 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<BackEnd.Api.Hubs.SupportChatHub>("/hubs/support");
+
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new[] { new HangfireAnonymousAuthorizationFilter() }
+});
+
+using (var scope = app.Services.CreateScope())
+{
+    var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+    recurringJobManager.AddOrUpdate<SubscriptionReminderJob>(
+        "subscription-reminder-job",
+        job => job.ProcessRemindersAsync(),
+        Cron.Daily(2));
+}
+
 app.Run();
 
 }
@@ -144,4 +170,12 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+public class HangfireAnonymousAuthorizationFilter : IDashboardAuthorizationFilter
+{
+    public bool Authorize(DashboardContext context)
+    {
+        return true;
+    }
 }
